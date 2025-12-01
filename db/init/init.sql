@@ -51,4 +51,4 @@ CREATE TABLE history (
 -- docker exec -it spotify_db psql -U spotify_user -d spotifydb
 
 -- pgAdmin in the browser at http://localhost:5050
--- (Connect to the server port: 5432, user/pass: spotify_user / spotify_pass).
+-- Connect to the server port: 5432, user/pass: spotify_user / spotify_pass
