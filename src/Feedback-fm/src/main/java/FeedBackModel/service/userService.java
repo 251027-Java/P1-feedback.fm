@@ -51,12 +51,36 @@ public class userService {
         return userRepo.save(u);
     }
 
+    // update user from spotify profile
     public User updateUser(String sID, String username, String email, String pfpURL) {
         User u = getUserBySpotify(sID);
-        u.setUsername(username);
-        u.setEmail(email);
-        u.setPFP(pfpURL);
+        if (username != null) {
+            u.setUsername(username);
+        }
+        if (email != null) {
+            u.setEmail(email);
+        }
+        if (pfpURL != null) {
+            u.setPFP(pfpURL);
+        }
         return userRepo.save(u);
     }
-    
+
+    // delete user
+    public void deleteUser(Long ID) {
+        User u = getUserById(ID);
+        userRepo.delete(u);
+    }
+
+    public boolean userExistsSpotify(String sID) {
+        return userRepo.findBySpotifyId(sID).isPresent();
+    }
+
+    public boolean userExistsEmail(String email) {
+        return userRepo.findByEmail(email).isPresent();
+    }
+
+    public User getOrCreate(String sID, String username, String email, String pfpURL) {
+        return userRepo.findBySpotifyId(sID).map(u -> updateUser(u, sID, username, email, pfpURL)).orElseGet(() -> createUser(sID, username, email, pfpURL));
+    }
 }
