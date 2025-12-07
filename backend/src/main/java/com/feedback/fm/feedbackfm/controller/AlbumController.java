@@ -1,4 +1,4 @@
-package com.feedback.fm.Feedback_fm.Controller;
+package com.feedback.fm.feedbackfm.controller;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
@@ -9,7 +9,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/albums")
 @CrossOrigin(origins = "http://localhost:3000")
-public class AlbumConroller {
+public class AlbumController {
 
 	// Get all albums for a user or by artist
 	@GetMapping

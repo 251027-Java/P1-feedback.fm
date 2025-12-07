@@ -1,4 +1,4 @@
-package com.feedback.fm.Feedback_fm.Controller;
+package com.feedback.fm.feedbackfm.controller;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;

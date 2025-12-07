@@ -1,6 +1,6 @@
-package repository;
+package com.feedback.fm.feedbackfm.repository;
 
-import feedbackmodel.Playlist;
+import com.feedback.fm.feedbackfm.model.Playlist;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -18,9 +18,10 @@ public interface PlaylistRepository extends JpaRepository<Playlist, String> {
     // Find playlists by partial description (case-insensitive)
     List<Playlist> findByDescriptionContainingIgnoreCase(String descriptionPart);
 
-    // Find playlists by listener's display name
-    List<Playlist> findByListener_DisplayName(String displayName);
+    // kenneth: changed this to be owner instead of listener to match up with Omar's model
+    // Find playlists by owner's display name
+    List<Playlist> findByOwner_DisplayName(String displayName);
 
-    // Find playlists by listener's email
-    List<Playlist> findByListener_Email(String email);
+    // Find playlists by owner's email
+    List<Playlist> findByOwner_Email(String email);
 }
