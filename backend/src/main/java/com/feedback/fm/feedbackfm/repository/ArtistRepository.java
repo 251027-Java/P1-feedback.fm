@@ -1,6 +1,6 @@
-package repository;
+package com.feedback.fm.feedbackfm.repository;
 
-import feedbackmodel.Artist;
+import com.feedback.fm.feedbackfm.model.Artist;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

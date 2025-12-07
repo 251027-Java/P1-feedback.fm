@@ -1,10 +1,11 @@
-package FeedBackModel;
+package com.feedback.fm.feedbackfm.model;
 import java.util.HashSet;
 import java.util.Set;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity // Tells JPA this is a database entity
@@ -23,6 +24,10 @@ public class Artist {
 
     @ManyToMany(mappedBy = "artists")
     private Set<Song> songs = new HashSet<>();
+
+    // kenneth added this: one:many for albums and artists
+    @OneToMany(mappedBy = "artist")
+    private Set<Album> albums = new HashSet<>();
 
     public Artist () {}
 
@@ -62,6 +67,15 @@ public class Artist {
 
     public void setSongs(Set<Song> songs){
         this.songs = songs;
+    }
+
+    // kenneth: added this so the new album model can be added to the artist model
+    public Set<Album> getAlbums() {
+        return albums;
+    }
+
+    public void setAlbums(Set<Album> albums) {
+        this.albums = albums;
     }
 
     @Override

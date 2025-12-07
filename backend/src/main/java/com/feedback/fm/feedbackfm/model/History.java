@@ -1,5 +1,4 @@
-package feedbackmodel;
-
+package com.feedback.fm.feedbackfm.model;
 
 import java.time.LocalDateTime;
 import jakarta.persistence.Column;
@@ -9,7 +8,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
@@ -26,8 +24,9 @@ public class History {
     @Column(name = "played_at", nullable = false)
     private LocalDateTime playedAt;
 
+    // kenneth changed this to be joinColumn instead of joinTable and removed the import
     @ManyToOne(fetch = FetchType.LAZY)// one history has one listener (listener who played the song)
-    @JoinTable(name = "listener_id", joinColumns = @JoinColumn(name = "history_id"), inverseJoinColumns = @JoinColumn(name = "listener_id"))
+    @JoinColumn(name = "listener_id")
     private Listener listener;
 
     @ManyToOne(fetch = FetchType.LAZY)

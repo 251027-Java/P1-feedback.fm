@@ -1,4 +1,4 @@
-package feedbackmodel;
+package com.feedback.fm.feedbackfm.model;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -27,6 +27,10 @@ import jakarta.persistence.Table;
                 
         @Column(nullable = false, columnDefinition = "TEXT")
         private String name;
+
+        // kenneth: i don't think we need this column but it was in Juan's repo so i added this in case
+        @Column(columnDefinition = "TEXT")
+        private String description;
 
         @Column(columnDefinition = "TEXT")
         private String href;
@@ -72,7 +76,15 @@ import jakarta.persistence.Table;
         }
         public void setName(String name) {
             this.name = name;
+        } 
+        // kenneth: i don't think we need this column but it was in Juan's repo so i added this in case
+        public String getDescription() {
+            return description;
         }
+        public void setDescription(String description) {
+            this.description = description;
+        }
+        
         public String getHref() {
             return href;
         }

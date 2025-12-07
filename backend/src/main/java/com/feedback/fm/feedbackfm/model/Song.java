@@ -1,4 +1,4 @@
-package FeedBackModel;
+package com.feedback.fm.feedbackfm.model;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -37,6 +37,15 @@ public class Song {
 
     @ManyToMany(mappedBy = "songs")
     private Set<Playlist> playlists = new HashSet<>();
+
+    // kenneth added this: many:many for albums and songs
+    @ManyToMany
+    @JoinTable(
+        name = "albums_songs",
+        joinColumns = @JoinColumn(name = "song_id"),
+        inverseJoinColumns = @JoinColumn(name = "album_id")
+    )
+    private Set<Album> albums = new HashSet<>();
 
     public Song() {}
     public Song(String songId, String name, Integer durationMs, String href) {
@@ -92,6 +101,15 @@ public class Song {
 
     public void setDurationMs(Integer durationMs) {
         this.durationMs = durationMs;
+    }
+
+    // kenneth added this so the new album model can be added to the song model
+    public Set<Album> getAlbums() {
+        return albums;
+    }
+
+    public void setAlbums(Set<Album> albums) {
+        this.albums = albums;
     }
 
     @Override
