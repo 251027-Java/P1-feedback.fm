@@ -1,4 +1,4 @@
-package FeedBackModel;
+package feedbackmodel;
 import java.util.HashSet;
 import java.util.Set;
 import jakarta.persistence.Column;
