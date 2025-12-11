@@ -72,6 +72,7 @@
             <artifactId>lombok</artifactId>
         </dependency>
 		<dependency>
+<<<<<<< HEAD
 				<groupId>io.jsonwebtoken</groupId>
 				<artifactId>jjwt-api</artifactId>
 				<version>0.12.3</version>
@@ -89,6 +90,13 @@
 				<scope>runtime</scope>
 			</dependency>
 		</dependencies>
+=======
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+	</dependencies>
+>>>>>>> b6cbaa71de18deff593a0d02c24d79350dfadd88
 
 		<build>
 			<plugins>
