@@ -30,7 +30,7 @@ public class ListenerController {
     private final ListenerService listenerService;
 
     @Autowired
-    public UserController(ListenerService listenerService) {
+    public ListenerController(ListenerService listenerService) {
         this.listenerService = listenerService;
     }
 
