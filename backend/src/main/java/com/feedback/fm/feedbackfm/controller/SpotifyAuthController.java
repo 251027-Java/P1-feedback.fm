@@ -82,10 +82,10 @@ public class SpotifyAuthController {
                 ));
             }
             
-            // Generate JWT token for the authenticated user
+            // kenneth: generate JWT token for the authenticated user
             String jwtToken = jwtUtil.generateToken(spotifyId);
             
-            // Return response with JWT token (for API authentication) and user info
+            // kenneth - return response with JWT token (for API authentication) and user info
             Map<String, Object> response = new HashMap<>();
             response.put("token", jwtToken);  // JWT token for API authentication
             response.put("listenerId", spotifyId);
