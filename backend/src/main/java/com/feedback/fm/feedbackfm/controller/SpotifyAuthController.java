@@ -19,15 +19,12 @@ public class SpotifyAuthController {
     private final SpotifyAuthService authService;
     private final SpotifyApiService apiService;
     private final ListenerService listenerService;
-    private final JwtUtil jwtUtil;
-
+    
     @Autowired
-    public SpotifyAuthController(SpotifyAuthService authService, SpotifyApiService apiService,
-            ListenerService listenerService, JwtUtil jwtUtil) {
+    public SpotifyAuthController(SpotifyAuthService authService, SpotifyApiService apiService, ListenerService listenerService) {
         this.authService = authService;
         this.apiService = apiService;
         this.listenerService = listenerService;
-        this.jwtUtil = jwtUtil;
     }
 
     @GetMapping("/login")
@@ -80,20 +77,20 @@ public class SpotifyAuthController {
                         country,
                         href));
             }
-
+            
             // Return response with tokens and user info
             Map<String, Object> response = new HashMap<>();
-            response.put("accessToken", accessToken);
+            response.put("token", jwtToken);  // JWT token for API authentication
+            response.put("listenerId", spotifyId);
+            response.put("user", userProfile);
+            // Optionally include Spotify tokens if needed for direct Spotify API calls
+            response.put("spotifyAccessToken", accessToken);
             if (refreshToken != null) {
-                response.put("refreshToken", refreshToken);
+                response.put("spotifyRefreshToken", refreshToken);
             }
             response.put("user", userProfile);
             response.put("listenerId", spotifyId);
-
-            // Generate backend JWT token
-            String jwtToken = jwtUtil.generateToken(spotifyId);
-            response.put("jwt", jwtToken);
-
+            
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
