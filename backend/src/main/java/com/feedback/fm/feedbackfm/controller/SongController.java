@@ -88,4 +88,26 @@ public class SongController {
 		Map<String, String> response = Map.of("message", "Song " + id + " unliked by user " + userId);
 		return ResponseEntity.ok(response);
 	}
+
+	// Get top songs (Spotify integration - placeholder)
+	@GetMapping("/top")
+	public ResponseEntity<List<SongDTO>> getTopSongs(@RequestParam(required = false, defaultValue = "medium_term") String time_range) {
+		// TODO: Integrate with Spotify API to get top songs
+		// For now, return all songs as placeholder
+		return ResponseEntity.ok(songService.getAllSongs());
+	}
+
+	// Get currently playing song (Spotify integration - placeholder)
+	@GetMapping("/currently-playing")
+	public ResponseEntity<Map<String, Object>> getCurrentlyPlaying() {
+		// TODO: Integrate with Spotify API to get currently playing track
+		// For now, return empty response
+		Map<String, Object> response = Map.of(
+			"isPlaying", false,
+			"name", "",
+			"artist", "",
+			"album", ""
+		);
+		return ResponseEntity.ok(response);
+	}
 }

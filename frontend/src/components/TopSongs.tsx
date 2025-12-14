@@ -1,7 +1,10 @@
-import { useState, type ChangeEvent } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { songsAPI } from '../services/api';
 
 function TopSongs() {
+  const [songs, setSongs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState('medium_term');
   const [filterText, setFilterText] = useState('');
 
@@ -12,6 +15,33 @@ function TopSongs() {
   const handleFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFilterText(e.target.value);
   };
+
+  useEffect(() => {
+    const fetchTopSongs = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await songsAPI.getTopSongs(timeRange);
+        setSongs(response.data || []);
+      } catch (err: any) {
+        console.error('Error fetching top songs:', err);
+        setError(err.response?.data?.message || 'Failed to load top songs');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTopSongs();
+  }, [timeRange]);
+
+  const filteredSongs = songs.filter((song: any) =>
+    song.name?.toLowerCase().includes(filterText.toLowerCase()) ||
+    song.artist?.toLowerCase().includes(filterText.toLowerCase())
+  );
+
+  if (loading) return <div>Loading...</div>;
+
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div>
@@ -31,9 +61,18 @@ function TopSongs() {
           onChange={handleFilterChange}
           placeholder="Filter songs..."
         />
-        {filterText && <p>Filtering by: {filterText}</p>}
       </div>
-      <p>Top Songs component - to be implemented</p>
+      {filteredSongs.length > 0 ? (
+        <ul>
+          {filteredSongs.map((song: any, index: number) => (
+            <li key={song.id || index}>
+              {song.name || 'Unknown Song'} - {song.artist || 'Unknown Artist'}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No songs found</p>
+      )}
     </div>
   );
 }

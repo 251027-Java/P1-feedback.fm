@@ -72,4 +72,12 @@ public class ArtistController {
 			.orElse(ResponseEntity.notFound().build());
 	}
 
+	// Get top artists (Spotify integration - placeholder)
+	@GetMapping("/top")
+	public ResponseEntity<List<ArtistDTO>> getTopArtists(@RequestParam(required = false, defaultValue = "medium_term") String time_range) {
+		// TODO: Integrate with Spotify API to get top artists
+		// For now, return all artists as placeholder
+		return ResponseEntity.ok(artistService.getAllArtists());
+	}
+
 }

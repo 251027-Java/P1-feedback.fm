@@ -21,8 +21,24 @@ public class HistoryController {
 
 	// Get listening history for a user with optional filters
 	@GetMapping
-	public ResponseEntity<List<HistoryDTO>> getListeningHistory(@RequestParam String listenerId, @RequestParam(required = false) String dateRange, @RequestParam(required = false) String query) {
-		return ResponseEntity.ok(historyService.findByListenerId(listenerId));
+	public ResponseEntity<List<HistoryDTO>> getListeningHistory(
+			@RequestParam(required = false) String listenerId, 
+			@RequestParam(required = false) Integer limit,
+			@RequestParam(required = false) String dateRange, 
+			@RequestParam(required = false) String query) {
+		if (listenerId != null && !listenerId.isBlank()) {
+			List<HistoryDTO> history = historyService.findByListenerId(listenerId);
+			if (limit != null && limit > 0) {
+				history = history.stream().limit(limit).toList();
+			}
+			return ResponseEntity.ok(history);
+		}
+		// If no listenerId, return empty list (or could return all with limit)
+		List<HistoryDTO> allHistory = historyService.getAllHistory();
+		if (limit != null && limit > 0) {
+			allHistory = allHistory.stream().limit(limit).toList();
+		}
+		return ResponseEntity.ok(allHistory);
 	}
 
 	// Get recently played songs
