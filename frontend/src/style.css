@@ -231,24 +231,32 @@ button:focus-visible {
 .App input[type="text"],
 .App input[type="number"],
 .App select {
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 14px;
+  position: relative;
+  z-index: 10;
 }
 
 .App input[type="text"]:focus,
 .App input[type="number"]:focus,
 .App select:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.4);
-  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+  background-color: #1a1a1a;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
 }
 
 .App input[type="text"]::placeholder {
   color: rgba(255, 255, 255, 0.5);
+}
+
+.App select option {
+  background-color: #1a1a1a;
+  color: white;
 }
 
 .App label {
@@ -287,4 +295,56 @@ button:focus-visible {
 .App strong {
   color: white;
   font-weight: 600;
+}
+
+/* Artists grid responsive layout */
+.artists-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2rem;
+}
+
+@media (max-width: 1200px) {
+  .artists-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .artists-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .artists-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* Songs grid responsive layout */
+.songs-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2rem;
+}
+
+@media (max-width: 1200px) {
+  .songs-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .songs-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .songs-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
 }

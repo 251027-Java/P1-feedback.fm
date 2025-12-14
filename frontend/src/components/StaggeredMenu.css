@@ -13,6 +13,7 @@
   height: 100vh;
   z-index: 40;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .staggered-menu-header {
@@ -25,7 +26,7 @@
   justify-content: space-between;
   padding: 1.5em 2em;
   background: transparent;
-  pointer-events: none;
+  pointer-events: auto;
   z-index: 20;
 }
 
@@ -143,6 +144,7 @@
   padding: 6em 2em 2em 2em;
   overflow-y: auto;
   z-index: 10;
+  pointer-events: auto;
 }
 
 [data-position='left'] .staggered-menu-panel {
