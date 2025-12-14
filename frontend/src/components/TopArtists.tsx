@@ -38,13 +38,17 @@ function TopArtists() {
     artist.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div style={{ padding: '20px', color: 'white' }}>Loading...</div>;
 
-  if (error) return <div>Error: {error}</div>;
+  if (error) return <div style={{ padding: '20px', color: '#ff6b6b' }}>Error: {error}</div>;
 
   return (
-    <div>
-      <h1>Top Artists</h1>
+    <div style={{ 
+      padding: '0 20px 20px 20px', 
+      color: 'white',
+      minHeight: '100%'
+    }}>
+      <h1 style={{ marginBottom: '20px', color: 'white' }}>Top Artists</h1>
       <div>
         <label>
           Time Range:

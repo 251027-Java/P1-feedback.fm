@@ -1,5 +1,7 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { removeAccessToken } from '../services/api';
+import StaggeredMenu from './StaggeredMenu';
+import type { StaggeredMenuItem } from './StaggeredMenu';
 
 function Navbar() {
   const navigate = useNavigate();
@@ -14,35 +16,38 @@ function Navbar() {
     navigate('/');
   };
 
+  const menuItems: StaggeredMenuItem[] = [
+    { label: 'Dashboard', ariaLabel: 'Go to dashboard', link: '/dashboard' },
+    { label: 'Top Artists', ariaLabel: 'View top artists', link: '/top-artists' },
+    { label: 'Top Songs', ariaLabel: 'View top songs', link: '/top-songs' },
+    { label: 'History', ariaLabel: 'View listening history', link: '/history' },
+    { label: 'Now Playing', ariaLabel: 'View currently playing', link: '/currently-playing' },
+    { label: 'Logout', ariaLabel: 'Logout', link: '/logout' },
+  ];
+
+  const handleItemClick = (link: string) => {
+    if (link === '/logout') {
+      handleLogout();
+    } else {
+      navigate(link);
+    }
+  };
+
   return (
-    <nav style={{ 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center',
-      padding: '10px 20px',
-      borderBottom: '1px solid #ccc'
-    }}>
-      <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-        <Link to="/dashboard" style={{ textDecoration: 'none', marginRight: '10px' }}>Dashboard</Link>
-        <Link to="/top-artists" style={{ textDecoration: 'none', marginRight: '10px' }}>Top Artists</Link>
-        <Link to="/top-songs" style={{ textDecoration: 'none', marginRight: '10px' }}>Top Songs</Link>
-        <Link to="/history" style={{ textDecoration: 'none', marginRight: '10px' }}>History</Link>
-        <Link to="/currently-playing" style={{ textDecoration: 'none' }}>Now Playing</Link>
-      </div>
-      <button 
-        onClick={handleLogout}
-        style={{
-          padding: '8px 16px',
-          backgroundColor: '#dc3545',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer'
-        }}
-      >
-        Logout
-      </button>
-    </nav>
+    <StaggeredMenu
+      position="right"
+      items={menuItems}
+      displaySocials={false}
+      displayItemNumbering={true}
+      menuButtonColor="#fff"
+      openMenuButtonColor="#fff"
+      changeMenuColorOnOpen={true}
+      colors={['#ff0000', '#ff4444']}
+      accentColor="#ff0000"
+      isFixed={true}
+      closeOnClickAway={true}
+      onItemClick={handleItemClick}
+    />
   );
 }
 

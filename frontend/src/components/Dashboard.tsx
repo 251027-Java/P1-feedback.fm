@@ -37,13 +37,19 @@ function Dashboard() {
     }
   }, []);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div style={{ padding: '20px', color: 'white' }}>Loading...</div>;
 
-  if (error) return <div>Error: {error}</div>;
+  if (error) return <div style={{ padding: '20px', color: '#ff6b6b' }}>Error: {error}</div>;
 
   return (
-    <div>
-      <h1>Dashboard</h1>
+    <div style={{ 
+      padding: '0 20px 20px 20px', 
+      color: 'white',
+      minHeight: '100%',
+      width: '100%',
+      boxSizing: 'border-box'
+    }}>
+      <h1 style={{ marginBottom: '20px', color: 'white' }}>Dashboard</h1>
       
       {dashboardData && (
         <div>

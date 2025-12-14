@@ -28,22 +28,28 @@ function CurrentlyPlaying() {
     return () => clearInterval(intervalId);
   }, []);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div style={{ padding: '20px', color: 'white' }}>Loading...</div>;
 
-  if (error) return <div>Error: {error}</div>;
+  if (error) return <div style={{ padding: '20px', color: '#ff6b6b' }}>Error: {error}</div>;
+
+  const pageStyle = { 
+    padding: '0 20px 20px 20px', 
+    color: 'white',
+    minHeight: '100%'
+  };
 
   if (!currentTrack) {
     return (
-      <div>
-        <h1>Currently Playing</h1>
-        <p>No track is currently playing</p>
+      <div style={pageStyle}>
+        <h1 style={{ marginBottom: '20px', color: 'white' }}>Currently Playing</h1>
+        <p style={{ color: 'rgba(255, 255, 255, 0.7)' }}>No track is currently playing</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <h1>Currently Playing</h1>
+    <div style={pageStyle}>
+      <h1 style={{ marginBottom: '20px', color: 'white' }}>Currently Playing</h1>
       <div>
         <h2>{currentTrack.name || 'Unknown Track'}</h2>
         <p>Artist: {currentTrack.artist || 'Unknown Artist'}</p>
