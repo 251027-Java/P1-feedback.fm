@@ -43,7 +43,16 @@ function ListeningHistory() {
         zIndex: 50
       }}
     >
-      <h1 style={{ marginBottom: '20px', color: '#1DB954' }}>Listening History</h1>
+      <h1 style={{ 
+        marginTop: '40px',
+        marginBottom: '40px', 
+        color: '#1DB954',
+        fontSize: '3rem',
+        fontWeight: '700',
+        letterSpacing: '-0.5px'
+      }}>
+        Listening History
+      </h1>
       <div style={{ marginBottom: '20px' }}>
         <label style={{ color: '#1DB954', fontWeight: 500 }}>
           Limit:

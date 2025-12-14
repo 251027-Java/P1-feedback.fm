@@ -54,7 +54,16 @@ function TopArtists() {
       zIndex: 50,
       backgroundColor: '#000'
     }}>
-      <h1 style={{ marginBottom: '20px', color: '#1DB954' }}>Top Artists</h1>
+      <h1 style={{ 
+        marginTop: '40px',
+        marginBottom: '40px', 
+        color: '#1DB954',
+        fontSize: '3rem',
+        fontWeight: '700',
+        letterSpacing: '-0.5px'
+      }}>
+        Top Artists
+      </h1>
       <div style={{
         display: 'flex',
         gap: '1rem',

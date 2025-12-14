@@ -42,7 +42,16 @@ function CurrentlyPlaying() {
   if (!currentTrack) {
     return (
       <div style={pageStyle}>
-        <h1 style={{ marginBottom: '20px', color: '#1DB954' }}>Currently Playing</h1>
+        <h1 style={{ 
+          marginTop: '40px',
+          marginBottom: '40px', 
+          color: '#1DB954',
+          fontSize: '3rem',
+          fontWeight: '700',
+          letterSpacing: '-0.5px'
+        }}>
+          Currently Playing
+        </h1>
         <p style={{ color: 'rgba(255, 255, 255, 0.7)' }}>No track is currently playing</p>
       </div>
     );
@@ -50,7 +59,16 @@ function CurrentlyPlaying() {
 
   return (
     <div style={pageStyle}>
-      <h1 style={{ marginBottom: '20px', color: '#1DB954' }}>Currently Playing</h1>
+      <h1 style={{ 
+        marginTop: '40px',
+        marginBottom: '40px', 
+        color: '#1DB954',
+        fontSize: '3rem',
+        fontWeight: '700',
+        letterSpacing: '-0.5px'
+      }}>
+        Currently Playing
+      </h1>
       <div style={{ 
         backgroundColor: 'rgba(29, 185, 84, 0.1)', 
         padding: '30px', 
