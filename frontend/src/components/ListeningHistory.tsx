@@ -49,7 +49,15 @@ function ListeningHistory() {
           {history.map((item: any, index: number) => (
             <li key={item.id || index}>
               {item.songName || 'Unknown Song'} - {item.artistName || 'Unknown Artist'}
-              {item.playedAt && <span> ({new Date(item.playedAt).toLocaleString()})</span>}
+              {item.playedAt && (
+                <span> ({(() => {
+                  try {
+                    return new Date(item.playedAt).toLocaleString();
+                  } catch {
+                    return item.playedAt;
+                  }
+                })()})</span>
+              )}
             </li>
           ))}
         </ul>

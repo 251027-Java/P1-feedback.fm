@@ -112,13 +112,20 @@ public class SpotifyApiService {
             ResponseEntity<Map> response = restTemplate.exchange(
                 url, HttpMethod.GET, entity, Map.class
             );
+            // 204 No Content means no recently played tracks
+            if (response.getStatusCode().value() == 204) {
+                return new java.util.HashMap<>();
+            }
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 return response.getBody();
             } else {
-                throw new SpotifyApiException("Failed to get recently played");
+                // Return empty map instead of throwing exception
+                return new java.util.HashMap<>();
             }
         } catch (RestClientException e) {
-            throw new SpotifyApiException("Error getting recently played: " + e.getMessage(), e);
+            // Log but return empty map instead of throwing
+            System.err.println("Error getting recently played: " + e.getMessage());
+            return new java.util.HashMap<>();
         }
     }
     

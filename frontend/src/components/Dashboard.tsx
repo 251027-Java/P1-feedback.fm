@@ -1,18 +1,11 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { userAPI } from '../services/api';
 
 function Dashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [refreshInterval, setRefreshInterval] = useState(30);
-
-  const handleIntervalChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value > 0) {
-      setRefreshInterval(value);
-    }
-  };
+  const refreshInterval = 60; // Fixed to 1 minute (60 seconds)
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -42,7 +35,7 @@ function Dashboard() {
       const intervalId = setInterval(fetchDashboard, refreshInterval * 1000);
       return () => clearInterval(intervalId);
     }
-  }, [refreshInterval]);
+  }, []);
 
   if (loading) return <div>Loading...</div>;
 
@@ -51,19 +44,6 @@ function Dashboard() {
   return (
     <div>
       <h1>Dashboard</h1>
-      <div>
-        <label>
-          Auto-refresh interval (seconds):
-          <input
-            type="number"
-            value={refreshInterval}
-            onChange={handleIntervalChange}
-            min="10"
-            max="300"
-          />
-        </label>
-        <p>Dashboard will refresh every {refreshInterval} seconds</p>
-      </div>
       
       {dashboardData && (
         <div>

@@ -6,6 +6,7 @@ import com.feedback.fm.feedbackfm.service.spotify.SpotifyApiService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -93,12 +94,78 @@ public class SongController {
 		return ResponseEntity.ok(response);
 	}
 
-	// Get top songs (Spotify integration - placeholder)
+	// Get top songs (Spotify integration)
 	@GetMapping("/top")
-	public ResponseEntity<List<SongDTO>> getTopSongs(@RequestParam(required = false, defaultValue = "medium_term") String time_range) {
-		// TODO: Integrate with Spotify API to get top songs
-		// For now, return all songs as placeholder
-		return ResponseEntity.ok(songService.getAllSongs());
+	public ResponseEntity<List<Map<String, Object>>> getTopSongs(
+			@RequestParam(required = false, defaultValue = "medium_term") String time_range,
+			@RequestHeader(value = "X-Spotify-Token", required = false) String spotifyToken) {
+		
+		if (spotifyToken == null || spotifyToken.isBlank()) {
+			return ResponseEntity.status(401).body(List.of());
+		}
+		
+		try {
+			Map<String, Object> spotifyResponse = spotifyApiService.getTopTracks(spotifyToken, time_range);
+			
+			if (spotifyResponse == null || spotifyResponse.isEmpty()) {
+				return ResponseEntity.ok(List.of());
+			}
+			
+			@SuppressWarnings("unchecked")
+			List<Map<String, Object>> items = (List<Map<String, Object>>) spotifyResponse.get("items");
+			if (items == null || items.isEmpty()) {
+				return ResponseEntity.ok(List.of());
+			}
+			
+			// Convert Spotify response to frontend format
+			List<Map<String, Object>> songs = new ArrayList<>();
+			for (Map<String, Object> item : items) {
+				Map<String, Object> song = new HashMap<>();
+				song.put("id", item.get("id"));
+				song.put("name", item.get("name"));
+				
+				// Get artists
+				@SuppressWarnings("unchecked")
+				List<Map<String, Object>> artists = (List<Map<String, Object>>) item.get("artists");
+				String artistName = "Unknown Artist";
+				if (artists != null && !artists.isEmpty()) {
+					artistName = (String) artists.get(0).get("name");
+				}
+				song.put("artist", artistName);
+				song.put("artistName", artistName);
+				
+				// Get album
+				Map<String, Object> album = (Map<String, Object>) item.get("album");
+				if (album != null) {
+					song.put("album", album.get("name"));
+				}
+				
+				// Get duration
+				song.put("duration", item.get("duration_ms"));
+				
+				// Get external URLs
+				@SuppressWarnings("unchecked")
+				Map<String, Object> externalUrls = (Map<String, Object>) item.get("external_urls");
+				if (externalUrls != null) {
+					song.put("href", externalUrls.get("spotify"));
+				}
+				
+				// Get album image
+				if (album != null) {
+					@SuppressWarnings("unchecked")
+					List<Map<String, Object>> images = (List<Map<String, Object>>) album.get("images");
+					if (images != null && !images.isEmpty()) {
+						song.put("image", images.get(0).get("url"));
+					}
+				}
+				
+				songs.add(song);
+			}
+			
+			return ResponseEntity.ok(songs);
+		} catch (Exception e) {
+			return ResponseEntity.status(500).body(List.of());
+		}
 	}
 
 	// Get currently playing song (Spotify integration)
