@@ -5,6 +5,7 @@ function Dashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
   const refreshInterval = 60; // Fixed to 1 minute (60 seconds)
 
   useEffect(() => {
@@ -18,8 +19,12 @@ function Dashboard() {
           setLoading(false);
           return;
         }
+        console.log('Fetching dashboard data at:', new Date().toISOString());
         const response = await userAPI.getDashboard(userId);
+        console.log('Dashboard data received:', response.data);
+        console.log('Profile image URL:', response.data?.profileImage);
         setDashboardData(response.data);
+        setImageError(false); // Reset image error on new data fetch
       } catch (err: any) {
         console.error('Error fetching dashboard:', err);
         setError(err.response?.data?.message || 'Failed to load dashboard');
@@ -32,10 +37,13 @@ function Dashboard() {
 
     // Set up auto-refresh if interval is set
     if (refreshInterval > 0) {
-      const intervalId = setInterval(fetchDashboard, refreshInterval * 1000);
+      const intervalId = setInterval(() => {
+        console.log('Auto-refreshing dashboard at:', new Date().toISOString());
+        fetchDashboard();
+      }, refreshInterval * 1000);
       return () => clearInterval(intervalId);
     }
-  }, []);
+  }, [refreshInterval]);
 
   if (loading) return <div style={{ padding: '20px', color: 'white' }}>Loading...</div>;
 
@@ -53,25 +61,101 @@ function Dashboard() {
       
       {dashboardData && (
         <div>
-          <h2>User Info</h2>
-          <div>
-            <p><strong>Username:</strong> {dashboardData.username || 'N/A'}</p>
-            <p><strong>Email:</strong> {dashboardData.email || 'N/A'}</p>
-          </div>
-
-          <h2>Statistics</h2>
-          {dashboardData.stats && (
-            <div>
-              <p><strong>Total Listening Time:</strong> {dashboardData.stats.totalListeningTime || '0 hours'}</p>
-              <p><strong>Songs Played:</strong> {dashboardData.stats.songsPlayed || 0}</p>
-              <p><strong>Current Streak:</strong> {dashboardData.stats.currentStreak || 0} days</p>
+          <h2 style={{ marginBottom: '20px', color: 'white' }}>User Info</h2>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              gap: '2rem',
+              marginBottom: '40px'
+            }}
+          >
+            {/* Profile Picture */}
+            <div
+              style={{
+                width: '120px',
+                height: '120px',
+                minWidth: '120px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)'
+              }}
+            >
+              {dashboardData.profileImage && !imageError ? (
+                <img
+                  src={dashboardData.profileImage}
+                  alt={dashboardData.username || 'User'}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                  onError={() => {
+                    console.error('Failed to load profile image:', dashboardData.profileImage);
+                    setImageError(true);
+                  }}
+                />
+              ) : (
+                <div style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '3rem' }}>
+                  👤
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Username and Stats */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                gap: '1rem'
+              }}
+            >
+              <div>
+                <h3 style={{ margin: '0 0 8px 0', color: 'white', fontSize: '1.5rem' }}>
+                  {dashboardData.username || 'N/A'}
+                </h3>
+                {dashboardData.email && (
+                  <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}>
+                    {dashboardData.email}
+                  </p>
+                )}
+              </div>
+
+              {dashboardData.stats && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem'
+                  }}
+                >
+                  <div>
+                    <strong style={{ color: 'rgba(255, 255, 255, 0.8)' }}>Total Listening Time:</strong>{' '}
+                    <span style={{ color: 'white' }}>{dashboardData.stats.totalListeningTime || '0 hours'}</span>
+                  </div>
+                  <div>
+                    <strong style={{ color: 'rgba(255, 255, 255, 0.8)' }}>Songs Played:</strong>{' '}
+                    <span style={{ color: 'white' }}>{dashboardData.stats.songsPlayed || 0}</span>
+                  </div>
+                  <div>
+                    <strong style={{ color: 'rgba(255, 255, 255, 0.8)' }}>Current Streak:</strong>{' '}
+                    <span style={{ color: 'white' }}>{dashboardData.stats.currentStreak || 0} days</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
           <h2>Top Artists</h2>
           {dashboardData.topArtists && dashboardData.topArtists.length > 0 ? (
             <ul>
-              {dashboardData.topArtists.slice(0, 10).map((artist: any, index: number) => (
+              {dashboardData.topArtists.slice(0, 5).map((artist: any, index: number) => (
                 <li key={artist.id || artist.artistId || index}>
                   {index + 1}. {artist.name || artist.artistName || 'Unknown Artist'}
                 </li>
@@ -84,7 +168,7 @@ function Dashboard() {
           <h2>Top Songs</h2>
           {dashboardData.topSongs && dashboardData.topSongs.length > 0 ? (
             <ul>
-              {dashboardData.topSongs.slice(0, 10).map((song: any, index: number) => (
+              {dashboardData.topSongs.slice(0, 5).map((song: any, index: number) => (
                 <li key={song.id || song.songId || index}>
                   {index + 1}. {song.name || song.songName || 'Unknown Song'} - {song.artistName || song.artist?.name || 'Unknown Artist'}
                 </li>
