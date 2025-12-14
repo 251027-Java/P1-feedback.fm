@@ -16,7 +16,8 @@ import static org.mockito.Mockito.*;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
+import com.feedback.fm.feedbackfm.exception.InvalidRequestException;
+import com.feedback.fm.feedbackfm.exception.ResourceNotFoundException;
 
 import java.util.List;
 import java.util.Set;
@@ -75,8 +76,8 @@ public class ArtistServiceTest {
 
     @Test
     public void testGetByIdInvalidInputThrows() {
-        assertThrows(ResponseStatusException.class, () -> service.getById(""));
-        assertThrows(ResponseStatusException.class, () -> service.getById(null));
+        assertThrows(InvalidRequestException.class, () -> service.getById(""));
+        assertThrows(InvalidRequestException.class, () -> service.getById(null));
     }
 
     @Test
@@ -129,14 +130,14 @@ public class ArtistServiceTest {
 
         when(repository.existsById("A1")).thenReturn(true);
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(InvalidRequestException.class, () -> service.create(dto));
     }
 
     @Test
     public void testCreateArtistInvalidDTOThrows() {
         ArtistDTO dto = new ArtistDTO("", "", "href", List.of());
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(InvalidRequestException.class, () -> service.create(dto));
     }
 
     @Test
@@ -158,15 +159,15 @@ public class ArtistServiceTest {
 
         when(repository.findById("A1")).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> service.update("A1", dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.update("A1", dto));
     }
 
     @Test
     public void testUpdateArtistInvalidDTOThrows() {
         ArtistDTO dto = makeDTO();
 
-        assertThrows(ResponseStatusException.class, () -> service.update("", dto));
-        assertThrows(ResponseStatusException.class, () -> service.update(null, dto));
+        assertThrows(InvalidRequestException.class, () -> service.update("", dto));
+        assertThrows(InvalidRequestException.class, () -> service.update(null, dto));
     }
 
     @Test
@@ -182,12 +183,12 @@ public class ArtistServiceTest {
     public void testDeleteArtistNotFoundThrows() {
         when(repository.existsById("UNKNOWN")).thenReturn(false);
 
-        assertThrows(ResponseStatusException.class, () -> service.delete("UNKNOWN"));
+        assertThrows(ResourceNotFoundException.class, () -> service.delete("UNKNOWN"));
     }
 
     @Test
     public void testDeleteArtistInvalidInputThrows() {
-        assertThrows(ResponseStatusException.class, () -> service.delete(""));
-        assertThrows(ResponseStatusException.class, () -> service.delete(null));
+        assertThrows(InvalidRequestException.class, () -> service.delete(""));
+        assertThrows(InvalidRequestException.class, () -> service.delete(null));
     }
 }

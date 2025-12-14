@@ -17,7 +17,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 
-import org.springframework.web.server.ResponseStatusException;
+import com.feedback.fm.feedbackfm.exception.InvalidRequestException;
+import com.feedback.fm.feedbackfm.exception.ResourceNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -104,7 +105,7 @@ public class HistoryServiceTest {
 
     @Test
     public void testGetByIdInvalidThrows() {
-        assertThrows(ResponseStatusException.class, () -> service.getById(null));
+        assertThrows(InvalidRequestException.class, () -> service.getById(null));
     }
 
     @Test
@@ -186,9 +187,9 @@ public class HistoryServiceTest {
     @Test
     public void testFindByDateRangeInvalidThrows() {
         LocalDateTime now = LocalDateTime.now();
-        assertThrows(ResponseStatusException.class, () -> service.findByDateRange(null, now));
-        assertThrows(ResponseStatusException.class, () -> service.findByDateRange(now, null));
-        assertThrows(ResponseStatusException.class, () -> service.findByDateRange(now.plusDays(1), now));
+        assertThrows(InvalidRequestException.class, () -> service.findByDateRange(null, now));
+        assertThrows(InvalidRequestException.class, () -> service.findByDateRange(now, null));
+        assertThrows(InvalidRequestException.class, () -> service.findByDateRange(now.plusDays(1), now));
     }
 
     @Test
@@ -213,9 +214,9 @@ public class HistoryServiceTest {
     @Test
     public void testFindByListenerIdAndDateRangeInvalidDatesThrows() {
         LocalDateTime now = LocalDateTime.now();
-        assertThrows(ResponseStatusException.class, () -> service.findByListenerIdAndDateRange("L1", null, now));
-        assertThrows(ResponseStatusException.class, () -> service.findByListenerIdAndDateRange("L1", now, null));
-        assertThrows(ResponseStatusException.class, () -> service.findByListenerIdAndDateRange("L1", now, now.minusDays(1)));
+        assertThrows(InvalidRequestException.class, () -> service.findByListenerIdAndDateRange("L1", null, now));
+        assertThrows(InvalidRequestException.class, () -> service.findByListenerIdAndDateRange("L1", now, null));
+        assertThrows(InvalidRequestException.class, () -> service.findByListenerIdAndDateRange("L1", now, now.minusDays(1)));
     }
 
     @Test
@@ -238,7 +239,7 @@ public class HistoryServiceTest {
         
         when(listenerRepository.findById("L1")).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.create(dto));
     }
 
     @Test
@@ -248,7 +249,7 @@ public class HistoryServiceTest {
         when(listenerRepository.findById("L1")).thenReturn(Optional.of(listener));
         when(songRepository.findById("S1")).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.create(dto));
     }   
 
     @Test
@@ -271,7 +272,7 @@ public class HistoryServiceTest {
 
         when(repository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> service.update(1L, dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.update(1L, dto));
     }
 
     @Test
@@ -287,11 +288,11 @@ public class HistoryServiceTest {
     public void testDeleteNotFoundThrows() {
         when(repository.existsById(99L)).thenReturn(false);
 
-        assertThrows(ResponseStatusException.class, () -> service.delete(99L));
+        assertThrows(ResourceNotFoundException.class, () -> service.delete(99L));
     }
 
     @Test
     public void testDeleteInvalidThrows() {
-        assertThrows(ResponseStatusException.class, () -> service.delete(null));
+        assertThrows(InvalidRequestException.class, () -> service.delete(null));
     }
 }

@@ -16,7 +16,8 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
+import com.feedback.fm.feedbackfm.exception.InvalidRequestException;
+import com.feedback.fm.feedbackfm.exception.ResourceNotFoundException;
 
 import com.feedback.fm.feedbackfm.dtos.AlbumDTO;
 import com.feedback.fm.feedbackfm.model.Album;
@@ -76,8 +77,8 @@ public class AlbumServiceTest {
 
     @Test
     public void testGetByIdInvalidInputThrows() {
-        assertThrows(ResponseStatusException.class, () -> service.getById(""));
-        assertThrows(ResponseStatusException.class, () -> service.getById(null));
+        assertThrows(InvalidRequestException.class, () -> service.getById(""));
+        assertThrows(InvalidRequestException.class, () -> service.getById(null));
     }
 
     @Test
@@ -111,8 +112,8 @@ public class AlbumServiceTest {
 
     @Test
     void testFindByReleaseYearInvalidThrows() {
-        assertThrows(ResponseStatusException.class, () -> service.findByReleaseYear(1800));
-        assertThrows(ResponseStatusException.class, () -> service.findByReleaseYear(2500));
+        assertThrows(InvalidRequestException.class, () -> service.findByReleaseYear(1800));
+        assertThrows(InvalidRequestException.class, () -> service.findByReleaseYear(2500));
     }
 
     @Test
@@ -137,7 +138,7 @@ public class AlbumServiceTest {
     public void testFindByArtistIdNotFoundThrows() {
         when(artistRepository.existsById("ART1")).thenReturn(false);
 
-        assertThrows(ResponseStatusException.class, () -> service.findByArtistId("ART1"));
+        assertThrows(ResourceNotFoundException.class, () -> service.findByArtistId("ART1"));
     }
 
     @Test
@@ -158,7 +159,7 @@ public class AlbumServiceTest {
 
         when(albumRepository.existsById("A1")).thenReturn(true);
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(InvalidRequestException.class, () -> service.create(dto));
     }
 
     @Test
@@ -179,7 +180,7 @@ public class AlbumServiceTest {
 
         when(albumRepository.findById("A1")).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> service.update("A1", dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.update("A1", dto));
     }
 
     @Test
@@ -195,6 +196,6 @@ public class AlbumServiceTest {
     public void testDeleteAlbumNotFoundThrows() {
         when(albumRepository.existsById("UNKNOWN")).thenReturn(false);
 
-        assertThrows(ResponseStatusException.class, () -> service.delete("UNKNOWN"));
+        assertThrows(ResourceNotFoundException.class, () -> service.delete("UNKNOWN"));
     }
 }

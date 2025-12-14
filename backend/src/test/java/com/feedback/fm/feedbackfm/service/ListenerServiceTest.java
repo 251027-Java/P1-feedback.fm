@@ -15,7 +15,8 @@ import static org.mockito.Mockito.*;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
+import com.feedback.fm.feedbackfm.exception.InvalidRequestException;
+import com.feedback.fm.feedbackfm.exception.ResourceNotFoundException;
 
 import java.util.List;
 import java.util.Optional;
@@ -83,10 +84,10 @@ public class ListenerServiceTest {
 
     @Test
     public void testGetByIdInvalidInputThrows() {
-        assertThrows(ResponseStatusException.class, () -> {
+        assertThrows(InvalidRequestException.class, () -> {
             service.getById("");
         });
-        assertThrows(ResponseStatusException.class, () -> {
+        assertThrows(InvalidRequestException.class, () -> {
             service.getById(null);
         });
     }
@@ -144,8 +145,8 @@ public class ListenerServiceTest {
 
     @Test
     public void testFindByEmailInvalidInputThrows() {
-        assertThrows(ResponseStatusException.class, () -> service.findByEmail(""));
-        assertThrows(ResponseStatusException.class, () -> service.findByEmail(null));
+        assertThrows(InvalidRequestException.class, () -> service.findByEmail(""));
+        assertThrows(InvalidRequestException.class, () -> service.findByEmail(null));
     }
 
     @Test
@@ -168,7 +169,7 @@ public class ListenerServiceTest {
 
         when(repository.existsById("L1")).thenReturn(true);
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(InvalidRequestException.class, () -> service.create(dto));
     }
 
     @Test
@@ -178,14 +179,14 @@ public class ListenerServiceTest {
         when(repository.existsById("L1")).thenReturn(false);
         when(repository.findByEmail("user@example.com")).thenReturn(sampleListener);
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(InvalidRequestException.class, () -> service.create(dto));
     }
 
     @Test
     public void testCreateListenerInvalidDTOThrows() {
         ListenerDTO dto = new ListenerDTO("", "", "bademail", "USA", "href");
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(InvalidRequestException.class, () -> service.create(dto));
     }
 
     @Test
@@ -208,7 +209,7 @@ public class ListenerServiceTest {
         
         when(repository.findById("L1")).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> service.update("L1", dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.update("L1", dto));
     }
 
     @Test
@@ -219,15 +220,15 @@ public class ListenerServiceTest {
         when(repository.findById("L1")).thenReturn(Optional.of(sampleListener));
         when(repository.findByEmail("new@example.com")).thenReturn(anotherListener);
 
-        assertThrows(ResponseStatusException.class, () -> service.update("L1", dto));
+        assertThrows(InvalidRequestException.class, () -> service.update("L1", dto));
     }
 
     @Test
     public void testUpdateListenerInvalidIdThrows() {
         ListenerDTO dto = makeDTO();
 
-        assertThrows(ResponseStatusException.class, () -> service.update("", dto));
-        assertThrows(ResponseStatusException.class, () -> service.update(null, dto));
+        assertThrows(InvalidRequestException.class, () -> service.update("", dto));
+        assertThrows(InvalidRequestException.class, () -> service.update(null, dto));
     }
 
     @Test
@@ -243,12 +244,12 @@ public class ListenerServiceTest {
     public void testDeleteListenerNotFoundThrows() {
         when(repository.existsById("UNKNOWN")).thenReturn(false);
 
-        assertThrows(ResponseStatusException.class, () -> service.delete("UNKNOWN"));
+        assertThrows(ResourceNotFoundException.class, () -> service.delete("UNKNOWN"));
     }
 
     @Test
     public void testDeleteListenerInvalidInputThrows() {
-        assertThrows(ResponseStatusException.class, () -> service.delete(""));
-        assertThrows(ResponseStatusException.class, () -> service.delete(null));
+        assertThrows(InvalidRequestException.class, () -> service.delete(""));
+        assertThrows(InvalidRequestException.class, () -> service.delete(null));
     }
 }

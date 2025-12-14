@@ -26,14 +26,45 @@ function Login() {
     }
   };
 
-  // Handle OAuth callback if code is in URL
+  // Handle OAuth callback if token is in URL (from backend redirect)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const listenerId = urlParams.get('listenerId');
+    const spotifyToken = urlParams.get('spotifyToken');
+    const error = urlParams.get('error');
+    
+    if (error) {
+      setError(error);
+      setLoading(false);
+      // Clean up URL
+      window.history.replaceState({}, document.title, '/');
+      return;
+    }
+    
+    if (token) {
+      // Token is already provided by backend redirect
+      setLoading(true);
+      setAccessToken(token);
+      if (listenerId) {
+        localStorage.setItem('userId', listenerId);
+      }
+      // Store Spotify access token for API calls
+      if (spotifyToken) {
+        localStorage.setItem('spotifyAccessToken', spotifyToken);
+      }
+      // Clean up URL and navigate
+      window.history.replaceState({}, document.title, '/');
+      navigate('/dashboard');
+      return;
+    }
+    
+    // Fallback: if code is present but no token, call the API (legacy support)
     const code = urlParams.get('code');
     if (code) {
       handleCallback(code);
     }
-  }, []);
+  }, [navigate]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

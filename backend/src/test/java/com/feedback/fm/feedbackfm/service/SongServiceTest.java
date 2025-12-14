@@ -13,7 +13,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
+import com.feedback.fm.feedbackfm.exception.InvalidRequestException;
+import com.feedback.fm.feedbackfm.exception.ResourceNotFoundException;
 
 import java.util.List;
 import java.util.Optional;
@@ -85,8 +86,8 @@ public class SongServiceTest {
 
     @Test
     public void testGetByIdInvalidInputThrows() {
-        assertThrows(ResponseStatusException.class, () -> service.getById(""));
-        assertThrows(ResponseStatusException.class, () -> service.getById(null));
+        assertThrows(InvalidRequestException.class, () -> service.getById(""));
+        assertThrows(InvalidRequestException.class, () -> service.getById(null));
     }
 
     @Test
@@ -162,10 +163,10 @@ public class SongServiceTest {
 
     @Test
     public void testFindByDurationRangeInvalidThrows() {
-        assertThrows(ResponseStatusException.class, () -> service.findByDurationRange(null, 100));
-        assertThrows(ResponseStatusException.class, () -> service.findByDurationRange(100, null));
-        assertThrows(ResponseStatusException.class, () -> service.findByDurationRange(-1, 100));
-        assertThrows(ResponseStatusException.class, () -> service.findByDurationRange(200, 100));
+        assertThrows(InvalidRequestException.class, () -> service.findByDurationRange(null, 100));
+        assertThrows(InvalidRequestException.class, () -> service.findByDurationRange(100, null));
+        assertThrows(InvalidRequestException.class, () -> service.findByDurationRange(-1, 100));
+        assertThrows(InvalidRequestException.class, () -> service.findByDurationRange(200, 100));
     }
 
     @Test
@@ -187,14 +188,14 @@ public class SongServiceTest {
 
         when(repository.existsById("S1")).thenReturn(true);
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(InvalidRequestException.class, () -> service.create(dto));
     }
 
     @Test
     public void testCreateSongInvalidDTOThrows() {
         SongDTO dto = new SongDTO("", "", "href", -5, List.of(), List.of());
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(InvalidRequestException.class, () -> service.create(dto));
     }
 
     @Test
@@ -216,15 +217,15 @@ public class SongServiceTest {
 
         when(repository.findById("S1")).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> service.update("S1", dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.update("S1", dto));
     }
 
     @Test
     public void testUpdateSongInvalidDTOThrows() {
         SongDTO dto = makeDTO();
 
-        assertThrows(ResponseStatusException.class, () -> service.update("", dto));
-        assertThrows(ResponseStatusException.class, () -> service.update(null, dto));
+        assertThrows(InvalidRequestException.class, () -> service.update("", dto));
+        assertThrows(InvalidRequestException.class, () -> service.update(null, dto));
     }
 
     @Test
@@ -240,12 +241,12 @@ public class SongServiceTest {
     public void testDeleteSongNotFoundThrows() {
         when(repository.existsById("UNKNOWN")).thenReturn(false);
 
-        assertThrows(ResponseStatusException.class, () -> service.delete("UNKNOWN"));
+        assertThrows(ResourceNotFoundException.class, () -> service.delete("UNKNOWN"));
     }
 
     @Test
     public void testDeleteSongInvalidInputThrows() {
-        assertThrows(ResponseStatusException.class, () -> service.delete(""));
-        assertThrows(ResponseStatusException.class, () -> service.delete(null));
+        assertThrows(InvalidRequestException.class, () -> service.delete(""));
+        assertThrows(InvalidRequestException.class, () -> service.delete(null));
     }
 }

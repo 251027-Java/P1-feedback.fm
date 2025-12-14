@@ -2,9 +2,11 @@ package com.feedback.fm.feedbackfm.controller;
 
 import com.feedback.fm.feedbackfm.dtos.SongDTO;
 import com.feedback.fm.feedbackfm.service.SongService;
+import com.feedback.fm.feedbackfm.service.spotify.SpotifyApiService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,9 +16,11 @@ import java.util.Map;
 public class SongController {
 
 	private final SongService songService;
+	private final SpotifyApiService spotifyApiService;
 
-	public SongController(SongService songService) {
+	public SongController(SongService songService, SpotifyApiService spotifyApiService) {
 		this.songService = songService;
+		this.spotifyApiService = spotifyApiService;
 	}
 
 	// Get all songs with pagination
@@ -97,17 +101,73 @@ public class SongController {
 		return ResponseEntity.ok(songService.getAllSongs());
 	}
 
-	// Get currently playing song (Spotify integration - placeholder)
+	// Get currently playing song (Spotify integration)
 	@GetMapping("/currently-playing")
-	public ResponseEntity<Map<String, Object>> getCurrentlyPlaying() {
-		// TODO: Integrate with Spotify API to get currently playing track
-		// For now, return empty response
-		Map<String, Object> response = Map.of(
-			"isPlaying", false,
-			"name", "",
-			"artist", "",
-			"album", ""
-		);
-		return ResponseEntity.ok(response);
+	public ResponseEntity<Map<String, Object>> getCurrentlyPlaying(@RequestHeader(value = "X-Spotify-Token", required = false) String spotifyToken) {
+		if (spotifyToken == null || spotifyToken.isBlank()) {
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("isPlaying", false);
+			errorResponse.put("error", "Spotify access token required. Please login again.");
+			return ResponseEntity.status(401).body(errorResponse);
+		}
+		
+		try {
+			Map<String, Object> spotifyResponse = spotifyApiService.getCurrentlyPlaying(spotifyToken);
+			
+			if (spotifyResponse == null || spotifyResponse.isEmpty()) {
+				// No track currently playing
+				Map<String, Object> response = new HashMap<>();
+				response.put("isPlaying", false);
+				response.put("name", "");
+				response.put("artist", "");
+				response.put("album", "");
+				return ResponseEntity.ok(response);
+			}
+			
+			// Extract track information from Spotify response
+			Map<String, Object> item = (Map<String, Object>) spotifyResponse.get("item");
+			if (item == null) {
+				Map<String, Object> response = new HashMap<>();
+				response.put("isPlaying", false);
+				response.put("name", "");
+				response.put("artist", "");
+				response.put("album", "");
+				return ResponseEntity.ok(response);
+			}
+			
+			// Get track name
+			String trackName = (String) item.get("name");
+			
+			// Get artists
+			@SuppressWarnings("unchecked")
+			List<Map<String, Object>> artists = (List<Map<String, Object>>) item.get("artists");
+			String artistName = "Unknown Artist";
+			if (artists != null && !artists.isEmpty()) {
+				artistName = (String) artists.get(0).get("name");
+			}
+			
+			// Get album
+			Map<String, Object> album = (Map<String, Object>) item.get("album");
+			String albumName = "Unknown Album";
+			if (album != null) {
+				albumName = (String) album.get("name");
+			}
+			
+			// Get playing status
+			Boolean isPlaying = (Boolean) spotifyResponse.get("is_playing");
+			
+			Map<String, Object> response = new HashMap<>();
+			response.put("isPlaying", isPlaying != null && isPlaying);
+			response.put("name", trackName != null ? trackName : "");
+			response.put("artist", artistName);
+			response.put("album", albumName);
+			
+			return ResponseEntity.ok(response);
+		} catch (Exception e) {
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("isPlaying", false);
+			errorResponse.put("error", "Failed to get currently playing track: " + e.getMessage());
+			return ResponseEntity.status(500).body(errorResponse);
+		}
 	}
 }

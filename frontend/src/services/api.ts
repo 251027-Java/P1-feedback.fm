@@ -47,7 +47,12 @@ export const artistsAPI = {
 export const songsAPI = {
   getTopSongs: (timeRange: string = 'medium_term') => 
     api.get(`/songs/top?time_range=${timeRange}`),
-  getCurrentlyPlaying: () => api.get('/songs/currently-playing'),
+  getCurrentlyPlaying: () => {
+    const spotifyToken = localStorage.getItem('spotifyAccessToken');
+    return api.get('/songs/currently-playing', {
+      headers: spotifyToken ? { 'X-Spotify-Token': spotifyToken } : {}
+    });
+  },
 };
 
 export const historyAPI = {

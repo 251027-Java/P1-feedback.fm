@@ -1,7 +1,11 @@
 package com.feedback.fm.feedbackfm.controller;
 
+import com.feedback.fm.feedbackfm.dtos.ArtistDTO;
 import com.feedback.fm.feedbackfm.dtos.ListenerDTO;
+import com.feedback.fm.feedbackfm.dtos.SongDTO;
+import com.feedback.fm.feedbackfm.service.ArtistService;
 import com.feedback.fm.feedbackfm.service.ListenerService;
+import com.feedback.fm.feedbackfm.service.SongService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -9,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -16,9 +21,13 @@ import java.util.Optional;
 public class ListenerController {
 
     private final ListenerService listenerService;
+    private final ArtistService artistService;
+    private final SongService songService;
 
-    public ListenerController(ListenerService listenerService) {
+    public ListenerController(ListenerService listenerService, ArtistService artistService, SongService songService) {
         this.listenerService = listenerService;
+        this.artistService = artistService;
+        this.songService = songService;
     }
 
     // Get user profile by ID
@@ -44,13 +53,50 @@ public class ListenerController {
         stats.put("songsPlayed", 0);
         stats.put("currentStreak", 0);
         
+        // Get top artists (limit to 10)
+        List<ArtistDTO> topArtists = artistService.getAllArtists().stream()
+            .limit(10)
+            .collect(Collectors.toList());
+        
+        // Convert to map format for frontend
+        List<Map<String, Object>> topArtistsData = topArtists.stream()
+            .map(artist -> {
+                Map<String, Object> artistMap = new HashMap<>();
+                artistMap.put("id", artist.artistId());
+                artistMap.put("name", artist.name());
+                artistMap.put("href", artist.href());
+                return artistMap;
+            })
+            .collect(Collectors.toList());
+        
+        // Get top songs (limit to 10)
+        List<SongDTO> topSongs = songService.getAllSongs().stream()
+            .limit(10)
+            .collect(Collectors.toList());
+        
+        // Convert to map format for frontend
+        List<Map<String, Object>> topSongsData = topSongs.stream()
+            .map(song -> {
+                Map<String, Object> songMap = new HashMap<>();
+                songMap.put("id", song.songId());
+                songMap.put("name", song.name());
+                // Get artist names from artistIds if needed
+                String artistNames = song.artistIds() != null && !song.artistIds().isEmpty() 
+                    ? String.join(", ", song.artistIds()) 
+                    : "Unknown Artist";
+                songMap.put("artistName", artistNames);
+                songMap.put("href", song.href());
+                return songMap;
+            })
+            .collect(Collectors.toList());
+        
         Map<String, Object> dashboard = new HashMap<>();
         dashboard.put("userId", listener.listenerId());
         dashboard.put("username", listener.displayName() != null ? listener.displayName() : "");
         dashboard.put("email", listener.email() != null ? listener.email() : "");
         dashboard.put("stats", stats);
-        dashboard.put("topArtists", List.of());
-        dashboard.put("topSongs", List.of());
+        dashboard.put("topArtists", topArtistsData);
+        dashboard.put("topSongs", topSongsData);
         return ResponseEntity.ok(dashboard);
     }
 

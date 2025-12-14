@@ -17,7 +17,8 @@ import static org.mockito.Mockito.*;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
+import com.feedback.fm.feedbackfm.exception.InvalidRequestException;
+import com.feedback.fm.feedbackfm.exception.ResourceNotFoundException;
 
 import java.util.List;
 import java.util.Optional;
@@ -91,10 +92,10 @@ public class PlaylistServiceTest {
 
     @Test
     public void testGetByIdInvalidInputThrows() {
-        assertThrows(ResponseStatusException.class, () -> {
+        assertThrows(InvalidRequestException.class, () -> {
             service.getById("");
         });
-        assertThrows(ResponseStatusException.class, () -> {
+        assertThrows(InvalidRequestException.class, () -> {
             service.getById(null);
         });
     }
@@ -151,7 +152,7 @@ public class PlaylistServiceTest {
     public void testFindByOwnerIdNotFoundThrows() {
         when(listenerRepository.existsById("L1")).thenReturn(false);
 
-        assertThrows(ResponseStatusException.class, () -> {
+        assertThrows(ResourceNotFoundException.class, () -> {
             service.findByOwnerId("L1");
         });
     }
@@ -207,7 +208,7 @@ public class PlaylistServiceTest {
 
         when(repository.existsById("P1")).thenReturn(true);
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(InvalidRequestException.class, () -> service.create(dto));
     }
 
     @Test
@@ -217,14 +218,14 @@ public class PlaylistServiceTest {
         when(repository.existsById("P1")).thenReturn(false);
         when(listenerRepository.findById("L1")).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.create(dto));
     }
 
     @Test
     public void testCreatePlaylistInvalidDTOThrows() {
         PlaylistDTO dto = new PlaylistDTO("", "", "desc", "href", false, "", List.of());
 
-        assertThrows(ResponseStatusException.class, () -> service.create(dto));
+        assertThrows(InvalidRequestException.class, () -> service.create(dto));
     }
 
     @Test
@@ -247,7 +248,7 @@ public class PlaylistServiceTest {
 
         when(repository.findById("P1")).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> service.update("P1", dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.update("P1", dto));
     }
 
     @Test
@@ -257,15 +258,15 @@ public class PlaylistServiceTest {
         when(repository.findById("P1")).thenReturn(Optional.of(samplePlaylist));
         when(listenerRepository.findById("L1")).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> service.update("P1", dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.update("P1", dto));
     }
 
     @Test
     public void testUpdatePlaylistInvalidIdThrows() {
         PlaylistDTO dto = makeDTO();
 
-        assertThrows(ResponseStatusException.class, () -> service.update("", dto));
-        assertThrows(ResponseStatusException.class, () -> service.update(null, dto));
+        assertThrows(InvalidRequestException.class, () -> service.update("", dto));
+        assertThrows(InvalidRequestException.class, () -> service.update(null, dto));
     }
 
     @Test
@@ -281,12 +282,12 @@ public class PlaylistServiceTest {
     public void testDeletePlaylistNotFoundThrows() {
         when(repository.existsById("UNKNOWN")).thenReturn(false);
 
-        assertThrows(ResponseStatusException.class, () -> service.delete("UNKNOWN"));
+        assertThrows(ResourceNotFoundException.class, () -> service.delete("UNKNOWN"));
     }
 
     @Test
     public void testDeletePlaylistInvalidInputThrows() {
-        assertThrows(ResponseStatusException.class, () -> service.delete(""));
-        assertThrows(ResponseStatusException.class, () -> service.delete(null));
+        assertThrows(InvalidRequestException.class, () -> service.delete(""));
+        assertThrows(InvalidRequestException.class, () -> service.delete(null));
     }
 }
