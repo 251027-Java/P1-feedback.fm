@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,13 +31,16 @@ public class ListenerController {
     private final ArtistService artistService;
     private final SongService songService;
     private final SpotifyApiService spotifyApiService;
+    private final com.feedback.fm.feedbackfm.service.SpotifySyncService spotifySyncService;
 
     public ListenerController(ListenerService listenerService, ArtistService artistService, 
-                             SongService songService, SpotifyApiService spotifyApiService) {
+                             SongService songService, SpotifyApiService spotifyApiService,
+                             com.feedback.fm.feedbackfm.service.SpotifySyncService spotifySyncService) {
         this.listenerService = listenerService;
         this.artistService = artistService;
         this.songService = songService;
         this.spotifyApiService = spotifyApiService;
+        this.spotifySyncService = spotifySyncService;
     }
 
     // Get user profile by ID
@@ -60,47 +64,49 @@ public class ListenerController {
         ListenerDTO listener = listenerOpt.get();
 
         Map<String, Object> stats = new HashMap<>();
-        stats.put("totalListeningTime", "0 hours");
-        stats.put("songsPlayed", 0);
-        stats.put("currentStreak", 0);
         
-        // Calculate stats from Spotify data if token is provided
+        // Use stored cumulative stats from database
+        Long totalListeningTimeMs = listener.totalListeningTimeMs() != null ? listener.totalListeningTimeMs() : 0L;
+        Integer totalSongsPlayed = listener.totalSongsPlayed() != null ? listener.totalSongsPlayed() : 0;
+        
+        // Convert milliseconds to hours and minutes
+        long totalMinutes = totalListeningTimeMs / 60000;
+        long hours = totalMinutes / 60;
+        long minutes = totalMinutes % 60;
+        if (hours > 0) {
+            stats.put("totalListeningTime", hours + " hours " + minutes + " minutes");
+        } else if (totalMinutes > 0) {
+            stats.put("totalListeningTime", minutes + " minutes");
+        } else {
+            stats.put("totalListeningTime", "0 minutes");
+        }
+        
+        stats.put("songsPlayed", totalSongsPlayed);
+        stats.put("currentStreak", 0); // Will calculate streak from recently played
+        
+        // Calculate streak from Spotify recently played data if token is provided
+        // (We still use recently played for streak calculation as it's time-based)
+        // Note: Spotify's recently played endpoint only returns the last 50 tracks maximum
+        // Stats represent activity from those tracks - for comprehensive stats, we'd need database storage
         if (spotifyToken != null && !spotifyToken.isBlank()) {
             try {
-                // Get recently played to calculate stats (increase limit to 50, max Spotify allows)
+                // Get recently played to calculate stats (limit 50 is max Spotify allows)
                 Map<String, Object> recentlyPlayed = spotifyApiService.getRecentlyPlayed(spotifyToken, 50);
+                System.out.println("[" + LocalDateTime.now() + "] Fetching dashboard stats - recently played response: " + 
+                    (recentlyPlayed != null ? "not null, keys: " + recentlyPlayed.keySet() : "null"));
+                
                 if (recentlyPlayed != null && recentlyPlayed.containsKey("items")) {
                     @SuppressWarnings("unchecked")
                     List<Map<String, Object>> items = (List<Map<String, Object>>) recentlyPlayed.get("items");
+                    int itemCount = items != null ? items.size() : 0;
+                    System.out.println("[" + LocalDateTime.now() + "] Number of recently played items: " + itemCount);
+                    
                     if (items != null && !items.isEmpty()) {
-                        stats.put("songsPlayed", items.size());
-                        
-                        // Calculate total listening time using actual song durations
-                        long totalMs = 0;
-                        for (Map<String, Object> item : items) {
-                            Map<String, Object> track = (Map<String, Object>) item.get("track");
-                            if (track != null) {
-                                Object durationObj = track.get("duration_ms");
-                                if (durationObj instanceof Number) {
-                                    totalMs += ((Number) durationObj).longValue();
-                                }
-                            }
-                        }
-                        
-                        // Convert milliseconds to hours and minutes
-                        long totalMinutes = totalMs / 60000;
-                        long hours = totalMinutes / 60;
-                        long minutes = totalMinutes % 60;
-                        if (hours > 0) {
-                            stats.put("totalListeningTime", hours + " hours " + minutes + " minutes");
-                        } else {
-                            stats.put("totalListeningTime", minutes + " minutes");
-                        }
-                        
-                        // Calculate streak from listening history
-                        // Check for consecutive days of listening
+                        // Calculate streak from listening days in recently played
                         Set<String> listeningDays = new HashSet<>();
+                        
                         for (Map<String, Object> item : items) {
+                            // Track listening days for streak calculation
                             Object playedAtObj = item.get("played_at");
                             if (playedAtObj instanceof String) {
                                 try {
@@ -117,18 +123,60 @@ public class ListenerController {
                         LocalDate today = LocalDate.now();
                         int streak = 0;
                         LocalDate checkDate = today;
+                        
+                        // Check for consecutive days
                         while (listeningDays.contains(checkDate.toString())) {
                             streak++;
                             checkDate = checkDate.minusDays(1);
+                            // Limit streak check to reasonable range (e.g., last 365 days)
+                            if (checkDate.isBefore(today.minusDays(365))) {
+                                break;
+                            }
                         }
+                        
                         stats.put("currentStreak", streak);
+                        System.out.println("[" + LocalDateTime.now() + "] Listening days found: " + listeningDays.size() + " - " + listeningDays);
+                        System.out.println("[" + LocalDateTime.now() + "] Calculated streak: " + streak + " days");
+                        
+                        // Also trigger sync to update cumulative stats with new plays
+                        // This ensures stats are kept up-to-date when dashboard is accessed
+                        try {
+                            spotifySyncService.syncRecentlyPlayed(spotifyToken, id);
+                            // Re-fetch listener to get updated stats
+                            listenerOpt = listenerService.getById(id);
+                            if (listenerOpt.isPresent()) {
+                                listener = listenerOpt.get();
+                                Long updatedTotalTime = listener.totalListeningTimeMs() != null ? listener.totalListeningTimeMs() : 0L;
+                                Integer updatedSongs = listener.totalSongsPlayed() != null ? listener.totalSongsPlayed() : 0;
+                                
+                                // Update stats with fresh values
+                                long updatedMinutes = updatedTotalTime / 60000;
+                                long updatedHours = updatedMinutes / 60;
+                                long updatedMins = updatedMinutes % 60;
+                                if (updatedHours > 0) {
+                                    stats.put("totalListeningTime", updatedHours + " hours " + updatedMins + " minutes");
+                                } else if (updatedMinutes > 0) {
+                                    stats.put("totalListeningTime", updatedMins + " minutes");
+                                }
+                                stats.put("songsPlayed", updatedSongs);
+                            }
+                        } catch (Exception syncException) {
+                            System.err.println("Error syncing recently played: " + syncException.getMessage());
+                            // Continue with existing stats if sync fails
+                        }
+                    } else {
+                        System.out.println("[" + LocalDateTime.now() + "] No items found in recently played");
                     }
+                } else {
+                    System.out.println("[" + LocalDateTime.now() + "] Recently played response missing 'items' key or is null");
                 }
             } catch (Exception e) {
                 // Keep default stats if calculation fails
-                System.err.println("Error calculating dashboard stats: " + e.getMessage());
+                System.err.println("[" + LocalDateTime.now() + "] Error calculating dashboard stats: " + e.getMessage());
                 e.printStackTrace();
             }
+        } else {
+            System.out.println("[" + LocalDateTime.now() + "] No Spotify token provided for dashboard stats");
         }
         
         List<Map<String, Object>> topArtistsData = List.of();
@@ -153,6 +201,12 @@ public class ListenerController {
                                 Map<String, Object> externalUrls = (Map<String, Object>) item.get("external_urls");
                                 if (externalUrls != null) {
                                     artistMap.put("href", externalUrls.get("spotify"));
+                                }
+                                // Get artist image
+                                @SuppressWarnings("unchecked")
+                                List<Map<String, Object>> images = (List<Map<String, Object>>) item.get("images");
+                                if (images != null && !images.isEmpty()) {
+                                    artistMap.put("image", images.get(0).get("url"));
                                 }
                                 return artistMap;
                             })
@@ -186,6 +240,17 @@ public class ListenerController {
                                 Map<String, Object> externalUrls = (Map<String, Object>) item.get("external_urls");
                                 if (externalUrls != null) {
                                     songMap.put("href", externalUrls.get("spotify"));
+                                }
+                                
+                                // Get album image
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> albumData = (Map<String, Object>) item.get("album");
+                                if (albumData != null) {
+                                    @SuppressWarnings("unchecked")
+                                    List<Map<String, Object>> albumImages = (List<Map<String, Object>>) albumData.get("images");
+                                    if (albumImages != null && !albumImages.isEmpty()) {
+                                        songMap.put("image", albumImages.get(0).get("url"));
+                                    }
                                 }
                                 return songMap;
                             })
