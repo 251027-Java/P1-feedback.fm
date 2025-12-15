@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { userAPI, songsAPI } from '../services/api';
+import { userAPI, songsAPI, historyAPI } from '../services/api';
 
 function Dashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -7,6 +7,8 @@ function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<any>(null);
+  const [recentlyPlayed, setRecentlyPlayed] = useState<any[]>([]);
+  const [timeRange, setTimeRange] = useState('short_term');
   const refreshInterval = 60;
   const getArtistKey = (artist: any, index: number) =>
     artist?.id || artist?.artistId || artist?.spotifyId || index;
@@ -97,7 +99,35 @@ function Dashboard() {
     return () => clearInterval(intervalId);
   }, []);
 
-  if (loading) return <div style={{ padding: '20px', color: '#1DB954' }}>Loading...</div>;
+  // Fetch recently played tracks
+  useEffect(() => {
+    const fetchRecentlyPlayed = async () => {
+      try {
+        const response = await historyAPI.getHistory(10);
+        setRecentlyPlayed(response.data || []);
+      } catch (err: any) {
+        console.error('Error fetching recently played:', err);
+        setRecentlyPlayed([]);
+      }
+    };
+
+    fetchRecentlyPlayed();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '0 20px 20px 20px', color: 'white', backgroundColor: '#000', minHeight: '100%' }}>
+        <div style={{ marginTop: '40px', marginBottom: '40px', height: '60px', width: '300px', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px', animation: 'pulse 1.5s ease-in-out infinite' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', marginBottom: '40px' }}>
+          {[1, 2].map(i => (
+            <div key={i} style={{ height: '200px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '16px', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          ))}
+        </div>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
+      </div>
+    );
+  }
+  
   if (error) return <div style={{ padding: '20px', color: '#1DB954' }}>Error: {error}</div>;
 
   return (
@@ -111,17 +141,20 @@ function Dashboard() {
         backgroundColor: '#000'
       }}
     >
-      {/* Header */}
-      <h1 style={{ 
-        marginTop: '40px',
-        marginBottom: '40px', 
-        color: '#1DB954',
-        fontSize: '3rem',
-        fontWeight: '700',
-        letterSpacing: '-0.5px'
-      }}>
-        Dashboard
-      </h1>
+      {/* Header with Time Range Selector */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px', marginBottom: '40px', flexWrap: 'wrap', gap: '20px' }}>
+        <h1 style={{ 
+          margin: 0,
+          color: '#1DB954',
+          fontSize: '3rem',
+          fontWeight: '700',
+          letterSpacing: '-0.5px'
+        }}>
+          Dashboard
+        </h1>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        </div>
+      </div>
 
       {dashboardData && (
         <div>
@@ -231,7 +264,7 @@ function Dashboard() {
                 letterSpacing: '1px',
                 textTransform: 'uppercase'
               }}>Now Playing</h2>
-              {currentTrack ? (
+              {currentTrack && currentTrack.name && currentTrack.name.trim() !== '' ? (
                 <div style={{
                   display: 'flex',
                   gap: '16px',
@@ -295,7 +328,7 @@ function Dashboard() {
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical'
                     }}>
-                      {currentTrack.name || 'Unknown Track'}
+                      {currentTrack.name}
                     </div>
                     <div style={{
                       fontSize: '0.9rem',
@@ -433,6 +466,146 @@ function Dashboard() {
             </div>
           )}
 
+          {/* Recently Played Section */}
+          {recentlyPlayed.length > 0 && (
+            <div style={{ marginBottom: '48px' }}>
+              <h2 style={{ 
+                marginBottom: '24px',
+                marginTop: '48px',
+                color: 'white',
+                fontSize: '1.5rem',
+                fontWeight: '700',
+                letterSpacing: '-0.3px'
+              }}>Recently Played</h2>
+              <div style={{
+                backgroundColor: 'rgba(29, 185, 84, 0.05)',
+                border: '1px solid rgba(29, 185, 84, 0.2)',
+                borderRadius: '16px',
+                padding: '20px',
+                maxHeight: '400px',
+                overflowY: 'auto'
+              }}>
+                {recentlyPlayed.slice(0, 8).map((item: any, index: number) => {
+                  const songName = item.songName || item.name || 'Unknown Song';
+                  const artistName = item.artistName || item.artist?.name || 'Unknown Artist';
+                  const image = item.image || null;
+                  const href = item.href || item.external_urls?.spotify;
+                  const playedAt = item.playedAt ? (() => {
+                    try {
+                      const date = new Date(item.playedAt);
+                      const now = new Date();
+                      const diffMs = now.getTime() - date.getTime();
+                      const diffMins = Math.floor(diffMs / 60000);
+                      const diffHours = Math.floor(diffMins / 60);
+                      const diffDays = Math.floor(diffHours / 24);
+                      
+                      if (diffMins < 1) return 'Just now';
+                      if (diffMins < 60) return `${diffMins}m ago`;
+                      if (diffHours < 24) return `${diffHours}h ago`;
+                      if (diffDays === 1) return 'Yesterday';
+                      return `${diffDays}d ago`;
+                    } catch {
+                      return '';
+                    }
+                  })() : '';
+
+                  return (
+                    <div
+                      key={item.id || index}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        padding: '12px',
+                        marginBottom: index < recentlyPlayed.length - 1 ? '8px' : 0,
+                        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: '8px',
+                        cursor: href ? 'pointer' : 'default',
+                        transition: 'all 0.2s'
+                      }}
+                      onClick={() => href && window.open(href, '_blank')}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                        if (href) e.currentTarget.style.transform = 'translateX(4px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                        e.currentTarget.style.transform = 'translateX(0)';
+                      }}
+                    >
+                      {/* Album Art */}
+                      <div style={{
+                        width: '56px',
+                        height: '56px',
+                        minWidth: '56px',
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
+                      }}>
+                        {image ? (
+                          <img src={image} alt={songName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: '1.5rem' }}>🎵</div>
+                        )}
+                      </div>
+                      {/* Song Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          color: 'white',
+                          fontSize: '0.95rem',
+                          fontWeight: '600',
+                          marginBottom: '4px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {songName}
+                        </div>
+                        <div style={{
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          fontSize: '0.85rem',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {artistName}
+                        </div>
+                      </div>
+                      {/* Time Ago */}
+                      {playedAt && (
+                        <div style={{
+                          color: 'rgba(255, 255, 255, 0.5)',
+                          fontSize: '0.8rem',
+                          fontWeight: '500',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {playedAt}
+                        </div>
+                      )}
+                      {/* Play Icon */}
+                      {href && (
+                        <div style={{
+                          color: '#1DB954',
+                          fontSize: '1.1rem',
+                          opacity: 0.7,
+                          transition: 'opacity 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}>
+                          ▶
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <h2 style={{ 
             marginBottom: '24px',
             marginTop: '48px',
@@ -453,10 +626,25 @@ function Dashboard() {
             >
               {dashboardData.topArtists.slice(0, 10).map((artist: any, index: number) => {
                 const artistImage = getArtistImage(artist);
+                const href = artist.href || artist.external_urls?.spotify;
                 return (
                   <div
                     key={getArtistKey(artist, index)}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      textAlign: 'center',
+                      cursor: href ? 'pointer' : 'default',
+                      transition: 'transform 0.2s ease'
+                    }}
+                    onClick={() => href && window.open(href, '_blank')}
+                    onMouseEnter={(e) => {
+                      if (href) e.currentTarget.style.transform = 'translateY(-8px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
                   >
                     <div
                       style={{
@@ -469,7 +657,15 @@ function Dashboard() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)'
+                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+                        border: '2px solid transparent',
+                        transition: 'border-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (href) e.currentTarget.style.borderColor = '#1DB954';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'transparent';
                       }}
                     >
                       {artistImage ? (
@@ -521,10 +717,25 @@ function Dashboard() {
             >
               {dashboardData.topSongs.slice(0, 10).map((song: any, index: number) => {
                 const songImage = getSongImage(song);
+                const href = song.href || song.external_urls?.spotify;
                 return (
                   <div
                     key={getSongKey(song, index)}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      textAlign: 'center',
+                      cursor: href ? 'pointer' : 'default',
+                      transition: 'transform 0.2s ease'
+                    }}
+                    onClick={() => href && window.open(href, '_blank')}
+                    onMouseEnter={(e) => {
+                      if (href) e.currentTarget.style.transform = 'translateY(-8px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
                   >
                     <div
                       style={{
@@ -537,7 +748,15 @@ function Dashboard() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)'
+                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+                        border: '2px solid transparent',
+                        transition: 'border-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (href) e.currentTarget.style.borderColor = '#1DB954';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'transparent';
                       }}
                     >
                       {songImage ? (
