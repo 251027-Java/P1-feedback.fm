@@ -53,26 +53,41 @@ function ListeningHistory() {
       }}>
         Listening History
       </h1>
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <label style={{ color: '#1DB954', fontWeight: 500 }}>
-          Limit:
-          <input
-            type="number"
-            value={limit}
-            onChange={(e) => setLimit(parseInt(e.target.value, 10) || 50)}
-            min={1}
-            max={100}
-            style={{
-              marginLeft: '10px',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              backgroundColor: '#1DB954',
-              color: '#000',
-              fontWeight: 'bold',
-              border: 'none'
-            }}
-          />
+          Show last:
         </label>
+        <select
+          value={limit}
+          onChange={(e) => setLimit(parseInt(e.target.value, 10))}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '20px',
+            backgroundColor: '#1DB954',
+            color: '#000',
+            fontWeight: 'bold',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '14px',
+            transition: 'all 0.2s',
+            outline: 'none'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#1ed760';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#1DB954';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          <option value={10} style={{ backgroundColor: '#181818', color: '#fff' }}>10 tracks</option>
+          <option value={20} style={{ backgroundColor: '#181818', color: '#fff' }}>20 tracks</option>
+          <option value={30} style={{ backgroundColor: '#181818', color: '#fff' }}>30 tracks</option>
+          <option value={50} style={{ backgroundColor: '#181818', color: '#fff' }}>50 tracks</option>
+          <option value={75} style={{ backgroundColor: '#181818', color: '#fff' }}>75 tracks</option>
+          <option value={100} style={{ backgroundColor: '#181818', color: '#fff' }}>100 tracks</option>
+        </select>
       </div>
 
       {history.length > 0 ? (
