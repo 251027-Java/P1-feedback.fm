@@ -6,6 +6,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,13 +16,14 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
+import com.feedback.fm.feedbackfm.exception.InvalidRequestException;
+import com.feedback.fm.feedbackfm.exception.ResourceNotFoundException;
 
 import com.feedback.fm.feedbackfm.dtos.AlbumDTO;
 import com.feedback.fm.feedbackfm.model.Album;
+import com.feedback.fm.feedbackfm.model.Artist;
 import com.feedback.fm.feedbackfm.repository.AlbumRepository;
 import com.feedback.fm.feedbackfm.repository.ArtistRepository;
-import com.feedback.fm.feedbackfm.service.AlbumServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
 public class AlbumServiceTest {
@@ -36,10 +38,12 @@ public class AlbumServiceTest {
     private AlbumServiceImpl service;
 
     private Album sampleAlbum;
+    private Artist sampleArtist;
 
     @BeforeEach
     public void setup() {
         sampleAlbum = new Album("A1", "Test Album", 2020, "href");
+        sampleArtist = new Artist("ART1", "Test Artist","href");
     }
 
     @Test
@@ -63,12 +67,18 @@ public class AlbumServiceTest {
     }
 
     @Test
-    public void testGetByIdNotFound() {
+    public void testGetByIdNotFoundReturnsEmptyOptional() {
         when(albumRepository.findById("UNKNOWN")).thenReturn(Optional.empty());
 
         Optional<AlbumDTO> result = service.getById("UNKNOWN");
-        
+
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testGetByIdInvalidInputThrows() {
+        assertThrows(InvalidRequestException.class, () -> service.getById(""));
+        assertThrows(InvalidRequestException.class, () -> service.getById(null));
     }
 
     @Test
@@ -81,7 +91,13 @@ public class AlbumServiceTest {
     }
 
     @Test
-    public void testFindByReleaseYear() {
+    public void testSearchByTitleBlankReturnsEmpty() {
+        assertTrue(service.searchByTitle("").isEmpty());
+        assertTrue(service.searchByTitle(null).isEmpty());
+    }
+
+    @Test
+    public void testFindByReleaseYearSuccess() {
         when(albumRepository.findByReleaseYear(2020)).thenReturn(List.of(sampleAlbum));
 
         List<AlbumDTO> result = service.findByReleaseYear(2020);
@@ -90,7 +106,43 @@ public class AlbumServiceTest {
     }
 
     @Test
-    public void testCreateAlbum() {
+    public void testFindByReleaseYearNullReturnsEmpty() {
+        assertTrue(service.findByReleaseYear(null).isEmpty());
+    }
+
+    @Test
+    void testFindByReleaseYearInvalidThrows() {
+        assertThrows(InvalidRequestException.class, () -> service.findByReleaseYear(1800));
+        assertThrows(InvalidRequestException.class, () -> service.findByReleaseYear(2500));
+    }
+
+    @Test
+    public void testFindByArtistIdSuccess() {
+        sampleAlbum.setArtist(sampleArtist);
+
+        when(artistRepository.existsById("ART1")).thenReturn(true);
+        when(albumRepository.findAll()).thenReturn(List.of(sampleAlbum));
+
+        List<AlbumDTO> result = service.findByArtistId("ART1");
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    public void testFindByArtistIdBlankReturnsEmpty() {
+        assertTrue(service.findByArtistId("").isEmpty());
+        assertTrue(service.findByArtistId(null).isEmpty());
+    }
+
+    @Test
+    public void testFindByArtistIdNotFoundThrows() {
+        when(artistRepository.existsById("ART1")).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> service.findByArtistId("ART1"));
+    }
+
+    @Test
+    public void testCreateAlbumSuccess() {
         AlbumDTO dto = new AlbumDTO("A1", "New Album", 2020, "href", null, List.of());
 
         when(albumRepository.existsById("A1")).thenReturn(false);
@@ -99,6 +151,15 @@ public class AlbumServiceTest {
         AlbumDTO result = service.create(dto);
 
         assertEquals("A1", result.albumId());
+    }
+
+    @Test
+    public void testCreateAlbumDuplicateThrows() {
+        AlbumDTO dto = new AlbumDTO("A1", "New Album", 2020, "href", null, List.of());
+
+        when(albumRepository.existsById("A1")).thenReturn(true);
+
+        assertThrows(InvalidRequestException.class, () -> service.create(dto));
     }
 
     @Test
@@ -114,12 +175,12 @@ public class AlbumServiceTest {
     }
 
     @Test
-    public void testUpdateAlbumNotFound() {
+    public void testUpdateAlbumNotFoundThrows() {
         AlbumDTO dto = new AlbumDTO("A1", "Updated", 2021, "href", null, List.of());
 
         when(albumRepository.findById("A1")).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class, () -> service.update("A1", dto));
+        assertThrows(ResourceNotFoundException.class, () -> service.update("A1", dto));
     }
 
     @Test
@@ -132,10 +193,9 @@ public class AlbumServiceTest {
     }
 
     @Test
-    public void testDeleteAlbumNotFound() {
+    public void testDeleteAlbumNotFoundThrows() {
         when(albumRepository.existsById("UNKNOWN")).thenReturn(false);
 
-        assertThrows(ResponseStatusException.class, () -> service.delete("UNKNOWN"));
+        assertThrows(ResourceNotFoundException.class, () -> service.delete("UNKNOWN"));
     }
 }
-
