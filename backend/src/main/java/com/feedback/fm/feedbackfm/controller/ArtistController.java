@@ -26,7 +26,8 @@ public class ArtistController {
 
 	// Get all artists
 	@GetMapping
-	public ResponseEntity<List<ArtistDTO>> getAllArtists(@RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size, @RequestParam(required = false) String query) {
+	public ResponseEntity<List<ArtistDTO>> getAllArtists(@RequestParam(required = false) Integer page,
+			@RequestParam(required = false) Integer size, @RequestParam(required = false) String query) {
 		if (query != null && !query.isBlank()) {
 			return ResponseEntity.ok(artistService.searchByName(query));
 		}
@@ -37,8 +38,8 @@ public class ArtistController {
 	@GetMapping("/{id}")
 	public ResponseEntity<ArtistDTO> getArtistById(@PathVariable String id) {
 		return artistService.getById(id)
-			.map(ResponseEntity::ok)
-			.orElse(ResponseEntity.notFound().build());
+				.map(ResponseEntity::ok)
+				.orElse(ResponseEntity.notFound().build());
 	}
 
 	// Create a new artist (admin only)
@@ -66,16 +67,16 @@ public class ArtistController {
 	@GetMapping("/{id}/songs")
 	public ResponseEntity<ArtistDTO> getArtistSongs(@PathVariable String id) {
 		return artistService.getById(id)
-			.map(ResponseEntity::ok)
-			.orElse(ResponseEntity.notFound().build());
+				.map(ResponseEntity::ok)
+				.orElse(ResponseEntity.notFound().build());
 	}
 
 	// Get albums by artist (returns full artist DTO which includes albums)
 	@GetMapping("/{id}/albums")
 	public ResponseEntity<ArtistDTO> getArtistAlbums(@PathVariable String id) {
 		return artistService.getById(id)
-			.map(ResponseEntity::ok)
-			.orElse(ResponseEntity.notFound().build());
+				.map(ResponseEntity::ok)
+				.orElse(ResponseEntity.notFound().build());
 	}
 
 	// Get top artists (Spotify integration)
@@ -83,51 +84,52 @@ public class ArtistController {
 	public ResponseEntity<List<Map<String, Object>>> getTopArtists(
 			@RequestParam(required = false, defaultValue = "medium_term") String time_range,
 			@RequestHeader(value = "X-Spotify-Token", required = false) String spotifyToken) {
-		
+
 		if (spotifyToken == null || spotifyToken.isBlank()) {
 			return ResponseEntity.status(401).body(List.of());
 		}
-		
+
 		try {
 			Map<String, Object> spotifyResponse = spotifyApiService.getTopArtists(spotifyToken, time_range);
-			
+
 			if (spotifyResponse == null || spotifyResponse.isEmpty()) {
 				return ResponseEntity.ok(List.of());
 			}
-			
+
 			@SuppressWarnings("unchecked")
 			List<Map<String, Object>> items = (List<Map<String, Object>>) spotifyResponse.get("items");
 			if (items == null || items.isEmpty()) {
 				return ResponseEntity.ok(List.of());
 			}
-			
+
 			// Convert Spotify response to frontend format
 			List<Map<String, Object>> artists = new ArrayList<>();
 			for (Map<String, Object> item : items) {
 				Map<String, Object> artist = new HashMap<>();
 				artist.put("id", item.get("id"));
 				artist.put("name", item.get("name"));
-				
+
 				// Get external URLs
 				@SuppressWarnings("unchecked")
 				Map<String, Object> externalUrls = (Map<String, Object>) item.get("external_urls");
 				if (externalUrls != null) {
 					artist.put("href", externalUrls.get("spotify"));
 				}
-				
+
 				// Get images
 				@SuppressWarnings("unchecked")
 				List<Map<String, Object>> images = (List<Map<String, Object>>) item.get("images");
 				if (images != null && !images.isEmpty()) {
 					artist.put("image", images.get(0).get("url"));
 				}
-				
+
 				artists.add(artist);
 			}
-			
+
 			return ResponseEntity.ok(artists);
 		} catch (Exception e) {
-			return ResponseEntity.status(500).body(List.of());
+			System.err.println("Error fetching top artists: " + e.getMessage());
+			return ResponseEntity.ok(List.of());
 		}
 	}
 

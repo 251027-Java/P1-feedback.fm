@@ -22,7 +22,6 @@ import com.feedback.fm.feedbackfm.exception.ResourceNotFoundException;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 @ExtendWith(MockitoExtension.class)
 public class PlaylistServiceTest {

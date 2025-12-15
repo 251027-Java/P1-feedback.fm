@@ -37,7 +37,8 @@ public class SongController {
 
 	// Get all songs with pagination
 	@GetMapping
-	public ResponseEntity<List<SongDTO>> getAllSongs(@RequestParam(required = false) Integer page, @RequestParam(required = false) Integer size, @RequestParam(required = false) String query) {
+	public ResponseEntity<List<SongDTO>> getAllSongs(@RequestParam(required = false) Integer page,
+			@RequestParam(required = false) Integer size, @RequestParam(required = false) String query) {
 		if (query != null && !query.isBlank()) {
 			return ResponseEntity.ok(songService.searchByName(query));
 		}
@@ -48,8 +49,8 @@ public class SongController {
 	@GetMapping("/{id}")
 	public ResponseEntity<SongDTO> getSongById(@PathVariable String id) {
 		return songService.getById(id)
-			.map(ResponseEntity::ok)
-			.orElse(ResponseEntity.notFound().build());
+				.map(ResponseEntity::ok)
+				.orElse(ResponseEntity.notFound().build());
 	}
 
 	// Create a new song (admin only)
@@ -110,31 +111,31 @@ public class SongController {
 	public ResponseEntity<List<Map<String, Object>>> getTopSongs(
 			@RequestParam(required = false, defaultValue = "medium_term") String time_range,
 			@RequestHeader(value = "X-Spotify-Token", required = false) String spotifyToken) {
-		
+
 		if (spotifyToken == null || spotifyToken.isBlank()) {
 			return ResponseEntity.status(401).body(List.of());
 		}
-		
+
 		try {
 			Map<String, Object> spotifyResponse = spotifyApiService.getTopTracks(spotifyToken, time_range);
-			
+
 			if (spotifyResponse == null || spotifyResponse.isEmpty()) {
 				return ResponseEntity.ok(List.of());
 			}
-			
+
 			@SuppressWarnings("unchecked")
 			List<Map<String, Object>> items = (List<Map<String, Object>>) spotifyResponse.get("items");
 			if (items == null || items.isEmpty()) {
 				return ResponseEntity.ok(List.of());
 			}
-			
+
 			// Convert Spotify response to frontend format
 			List<Map<String, Object>> songs = new ArrayList<>();
 			for (Map<String, Object> item : items) {
 				Map<String, Object> song = new HashMap<>();
 				song.put("id", item.get("id"));
 				song.put("name", item.get("name"));
-				
+
 				// Get artists
 				@SuppressWarnings("unchecked")
 				List<Map<String, Object>> artists = (List<Map<String, Object>>) item.get("artists");
@@ -144,23 +145,23 @@ public class SongController {
 				}
 				song.put("artist", artistName);
 				song.put("artistName", artistName);
-				
+
 				// Get album
 				Map<String, Object> album = (Map<String, Object>) item.get("album");
 				if (album != null) {
 					song.put("album", album.get("name"));
 				}
-				
+
 				// Get duration
 				song.put("duration_ms", item.get("duration_ms"));
-				
+
 				// Get external URLs
 				@SuppressWarnings("unchecked")
 				Map<String, Object> externalUrls = (Map<String, Object>) item.get("external_urls");
 				if (externalUrls != null) {
 					song.put("href", externalUrls.get("spotify"));
 				}
-				
+
 				// Get album image
 				if (album != null) {
 					@SuppressWarnings("unchecked")
@@ -169,29 +170,31 @@ public class SongController {
 						song.put("image", images.get(0).get("url"));
 					}
 				}
-				
+
 				songs.add(song);
 			}
-			
+
 			return ResponseEntity.ok(songs);
 		} catch (Exception e) {
-			return ResponseEntity.status(500).body(List.of());
+			System.err.println("Error fetching top songs: " + e.getMessage());
+			return ResponseEntity.ok(List.of());
 		}
 	}
 
 	// Get currently playing song (Spotify integration)
 	@GetMapping("/currently-playing")
-	public ResponseEntity<Map<String, Object>> getCurrentlyPlaying(@RequestHeader(value = "X-Spotify-Token", required = false) String spotifyToken) {
+	public ResponseEntity<Map<String, Object>> getCurrentlyPlaying(
+			@RequestHeader(value = "X-Spotify-Token", required = false) String spotifyToken) {
 		if (spotifyToken == null || spotifyToken.isBlank()) {
 			Map<String, Object> errorResponse = new HashMap<>();
 			errorResponse.put("isPlaying", false);
 			errorResponse.put("error", "Spotify access token required. Please login again.");
 			return ResponseEntity.status(401).body(errorResponse);
 		}
-		
+
 		try {
 			Map<String, Object> spotifyResponse = spotifyApiService.getCurrentlyPlaying(spotifyToken);
-			
+
 			if (spotifyResponse == null || spotifyResponse.isEmpty()) {
 				// No track currently playing
 				Map<String, Object> response = new HashMap<>();
@@ -201,7 +204,7 @@ public class SongController {
 				response.put("album", "");
 				return ResponseEntity.ok(response);
 			}
-			
+
 			// Extract track information from Spotify response
 			Map<String, Object> item = (Map<String, Object>) spotifyResponse.get("item");
 			if (item == null) {
@@ -212,10 +215,10 @@ public class SongController {
 				response.put("album", "");
 				return ResponseEntity.ok(response);
 			}
-			
+
 			// Get track name
 			String trackName = (String) item.get("name");
-			
+
 			// Get artists
 			@SuppressWarnings("unchecked")
 			List<Map<String, Object>> artists = (List<Map<String, Object>>) item.get("artists");
@@ -223,7 +226,7 @@ public class SongController {
 			if (artists != null && !artists.isEmpty()) {
 				artistName = (String) artists.get(0).get("name");
 			}
-			
+
 			// Get album
 			Map<String, Object> album = (Map<String, Object>) item.get("album");
 			String albumName = "Unknown Album";
@@ -237,23 +240,23 @@ public class SongController {
 					albumImage = (String) images.get(0).get("url");
 				}
 			}
-			
+
 			// Get playing status
 			Boolean isPlaying = (Boolean) spotifyResponse.get("is_playing");
-			
+
 			Map<String, Object> response = new HashMap<>();
 			response.put("isPlaying", isPlaying != null && isPlaying);
 			response.put("name", trackName != null ? trackName : "");
 			response.put("artist", artistName);
 			response.put("album", albumName);
 			response.put("image", albumImage);
-			
+
 			return ResponseEntity.ok(response);
 		} catch (Exception e) {
+			System.err.println("Error fetching currently playing: " + e.getMessage());
 			Map<String, Object> errorResponse = new HashMap<>();
 			errorResponse.put("isPlaying", false);
-			errorResponse.put("error", "Failed to get currently playing track: " + e.getMessage());
-			return ResponseEntity.status(500).body(errorResponse);
+			return ResponseEntity.ok(errorResponse);
 		}
 	}
 }
