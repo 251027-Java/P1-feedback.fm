@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { userAPI, songsAPI, historyAPI } from '../services/api';
+import cycleList from '../../resources/cycleList?raw';
+import ASCIIText from './ASCIIText';
 
 function Dashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -10,6 +12,8 @@ function Dashboard() {
   const [currentTrack, setCurrentTrack] = useState<any>(null);
   const [recentlyPlayed, setRecentlyPlayed] = useState<any[]>([]);
   const [timeRange, setTimeRange] = useState('short_term');
+  const [cycleMessage, setCycleMessage] = useState<string>('');
+  const [cycleColor, setCycleColor] = useState<string>('#1DB954');
   const refreshInterval = 60;
   const getArtistKey = (artist: any, index: number) =>
     artist?.id || artist?.artistId || artist?.spotifyId || index;
@@ -105,6 +109,17 @@ function Dashboard() {
     const intervalId = setInterval(fetchCurrentlyPlaying, 10000);
     return () => clearInterval(intervalId);
   }, []);
+
+  // Pick a random cycle message and color whenever the track changes
+  useEffect(() => {
+    if (!currentTrack || !currentTrack.name) return;
+    const messages = cycleList.split(/\r?\n/).filter(Boolean);
+    const palette = ['#1DB954', '#FF6B6B', '#FFD166', '#06D6A0', '#118AB2', '#C77DFF', '#F06595'];
+    const message = messages[Math.floor(Math.random() * messages.length)];
+    const color = palette[Math.floor(Math.random() * palette.length)];
+    setCycleMessage(message);
+    setCycleColor(color);
+  }, [currentTrack?.id, currentTrack?.name]);
 
   // Fetch recently played tracks
   useEffect(() => {
@@ -386,6 +401,7 @@ function Dashboard() {
                       </div>
                     )}
                   </div>
+
                 </div>
               ) : (
                 <div style={{
@@ -404,6 +420,28 @@ function Dashboard() {
             </Link>
           </div>
 
+          {/* Quip above Stats */}
+          <div style={{ marginBottom: '20px', width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <div style={{
+              width: '100%',
+              maxWidth: '1200px',
+              minHeight: '260px',
+              borderRadius: '16px',
+              border: '1px dashed rgba(255, 255, 255, 0.3)',
+              backgroundColor: 'rgba(255, 255, 255, 0.06)',
+              overflow: 'hidden',
+              position: 'relative'
+            }}>
+              <ASCIIText
+                text={cycleMessage || '...'}
+                asciiFontSize={8}
+                textFontSize={140}
+                textColor={cycleColor}
+                enableWaves={false}
+              />
+            </div>
+          </div>
+
           {/* Stats Section */}
           <div style={{ marginBottom: '40px' }}>
             <h2 style={{ 
@@ -416,7 +454,7 @@ function Dashboard() {
             {console.log('Rendering stats section with data:', dashboardData?.stats)}
             <div style={{ 
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridTemplateColumns: 'repeat(3, minmax(180px, 1fr))',
               gap: '1.5rem',
               padding: '20px',
               backgroundColor: 'rgba(29, 185, 84, 0.1)',
