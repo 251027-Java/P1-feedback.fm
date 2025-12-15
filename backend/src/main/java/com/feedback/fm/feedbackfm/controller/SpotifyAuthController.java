@@ -30,11 +30,10 @@ public class SpotifyAuthController {
     
     @Autowired
     public SpotifyAuthController(SpotifyAuthService authService, SpotifyApiService apiService, ListenerService listenerService, JwtUtil jwtUtil) {
-    public SpotifyAuthController(SpotifyAuthService authService, SpotifyApiService apiService, 
-                                 ListenerService listenerService, JwtUtil jwtUtil) {
         this.authService = authService;
         this.apiService = apiService;
         this.listenerService = listenerService;
+        this.jwtUtil = jwtUtil;
     }
 
     @GetMapping("/login")
