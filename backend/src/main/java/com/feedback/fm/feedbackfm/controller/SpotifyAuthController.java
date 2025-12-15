@@ -5,9 +5,13 @@ import com.feedback.fm.feedbackfm.service.ListenerService;
 import com.feedback.fm.feedbackfm.service.spotify.SpotifyApiService;
 import com.feedback.fm.feedbackfm.service.spotify.SpotifyAuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.view.RedirectView;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,8 +25,12 @@ public class SpotifyAuthController {
     private final ListenerService listenerService;
     private final JwtUtil jwtUtil;
     
+    @Value("${frontend.url:http://localhost:3000}")
+    private String frontendUrl;
+    
     @Autowired
-    public SpotifyAuthController(SpotifyAuthService authService, SpotifyApiService apiService, ListenerService listenerService, JwtUtil jwtUtil) {
+    public SpotifyAuthController(SpotifyAuthService authService, SpotifyApiService apiService, 
+                                 ListenerService listenerService, JwtUtil jwtUtil) {
         this.authService = authService;
         this.apiService = apiService;
         this.listenerService = listenerService;
@@ -38,7 +46,7 @@ public class SpotifyAuthController {
     }
 
     @GetMapping("/callback")
-    public ResponseEntity<Map<String, Object>> handleCallback(@RequestParam String code) {
+    public RedirectView handleCallback(@RequestParam String code) {
         try {
             // Exchange code for access token
             Map<String, Object> tokenResponse = authService.exchangeCodeForToken(code);
@@ -46,7 +54,9 @@ public class SpotifyAuthController {
             String refreshToken = (String) tokenResponse.get("refresh_token");
 
             if (accessToken == null) {
-                return ResponseEntity.status(400).body(Map.of("error", "Failed to get access token"));
+                // Redirect to frontend with error
+                String errorUrl = frontendUrl + "?error=" + URLEncoder.encode("Failed to get access token", StandardCharsets.UTF_8);
+                return new RedirectView(errorUrl);
             }
 
             // Get user profile from Spotify
@@ -80,25 +90,26 @@ public class SpotifyAuthController {
                         href));
             }
             
-            // Return response with tokens and user info
-            Map<String, Object> response = new HashMap<>();
-            response.put("token", jwtToken);  // JWT token for API authentication
-            response.put("listenerId", spotifyId);
-            response.put("user", userProfile);
-            // Optionally include Spotify tokens if needed for direct Spotify API calls
-            response.put("spotifyAccessToken", accessToken);
-            if (refreshToken != null) {
-                response.put("spotifyRefreshToken", refreshToken);
-            }
-            response.put("user", userProfile);
-            response.put("listenerId", spotifyId);
+            // Generate JWT token for API authentication
+            String jwtToken = jwtUtil.generateToken(spotifyId);
             
-            return ResponseEntity.ok(response);
+            // Redirect to frontend with token, code, and Spotify access token in URL
+            // Frontend will extract the code and call the API to get the full response
+            String redirectUrl = frontendUrl + "/?code=" + URLEncoder.encode(code, StandardCharsets.UTF_8) +
+                    "&token=" + URLEncoder.encode(jwtToken, StandardCharsets.UTF_8) +
+                    "&listenerId=" + URLEncoder.encode(spotifyId, StandardCharsets.UTF_8) +
+                    "&spotifyToken=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8);
+            
+            return new RedirectView(redirectUrl);
         } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Authentication failed");
-            errorResponse.put("message", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
+            // Redirect to frontend with error
+            try {
+                String errorUrl = frontendUrl + "?error=" + URLEncoder.encode("Authentication failed: " + e.getMessage(), StandardCharsets.UTF_8);
+                return new RedirectView(errorUrl);
+            } catch (Exception ex) {
+                // Fallback if encoding fails
+                return new RedirectView(frontendUrl + "?error=Authentication failed");
+            }
         }
     }
 
