@@ -25,8 +25,8 @@ function CurrentlyPlaying() {
 
     fetchCurrentlyPlaying();
 
-    // Poll every 5 seconds for updates
-    const intervalId = setInterval(fetchCurrentlyPlaying, 5000);
+    // Poll every 2 minutes for updates
+    const intervalId = setInterval(fetchCurrentlyPlaying, 120000);
     return () => clearInterval(intervalId);
   }, []);
 

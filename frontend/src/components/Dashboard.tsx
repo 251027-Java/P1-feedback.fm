@@ -13,7 +13,7 @@ function Dashboard() {
   const [recentlyPlayed, setRecentlyPlayed] = useState<any[]>([]);
   const [cycleMessage, setCycleMessage] = useState<string>('');
   const [cycleColor, setCycleColor] = useState<string>('#1DB954');
-  const refreshInterval = 60;
+  const refreshInterval = 180;
   const getArtistKey = (artist: any, index: number) =>
     artist?.id || artist?.artistId || artist?.spotifyId || index;
 
@@ -573,7 +573,7 @@ function Dashboard() {
                   </div>
                   <div style={{ 
                     fontSize: '0.8rem',
-                    color: 'rgba(255, 255, 255, 0.6)',
+                    color: colorWithAlpha(cycleColor, 0.6),
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
                     fontWeight: '600'
@@ -593,7 +593,7 @@ function Dashboard() {
                   </div>
                   <div style={{ 
                     fontSize: '0.8rem',
-                    color: 'rgba(255, 255, 255, 0.6)',
+                    color: colorWithAlpha(cycleColor, 0.6),
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
                     fontWeight: '600'
