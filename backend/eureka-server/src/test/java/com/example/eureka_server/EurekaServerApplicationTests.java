@@ -1,12 +1,13 @@
-package com.feedback.fm.feedbackfm;
+package com.example.eureka_server;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class FeedbackFmApplicationTests {
+class EurekaServerApplicationTests {
 
+	@Test
+	void contextLoads() {
+	}
 
 }
-
-// this is old
