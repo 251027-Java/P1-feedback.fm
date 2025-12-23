@@ -1,6 +1,6 @@
 Listener Service
 
-This service owns listener profiles, listening history, and aggregated stats.
+This service owns listener profiles. Listening history and aggregated stats are now owned by the `history-service` and accessed via HTTP calls.
 
 Build:
 
@@ -28,3 +28,4 @@ Endpoints:
 - `POST /api/users/register` — register
 - `POST /api/users/login` — simple login (stub)
 - `POST /api/users/{id}/history` — add history entry
+	- Note: `POST /api/users/{id}/history` forwards the history record to the `history-service` (`history.service.url`), so the listener service no longer persists history locally.

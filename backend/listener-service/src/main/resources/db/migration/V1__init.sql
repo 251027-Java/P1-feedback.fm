@@ -9,13 +9,6 @@ CREATE TABLE listeners (
     total_songs_played INTEGER
 );
 
-CREATE TABLE history (
-    id SERIAL PRIMARY KEY,
-    listener_id VARCHAR(128) REFERENCES listeners(listener_id) ON DELETE CASCADE,
-    song_id VARCHAR(255),
-    played_at TIMESTAMP WITH TIME ZONE,
-    duration_ms INTEGER
-);
 
 CREATE TABLE listener_stats (
     listener_id VARCHAR(128) PRIMARY KEY REFERENCES listeners(listener_id) ON DELETE CASCADE,

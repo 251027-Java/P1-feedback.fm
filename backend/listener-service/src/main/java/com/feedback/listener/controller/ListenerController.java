@@ -1,16 +1,17 @@
 package com.feedback.listener.controller;
 
-import com.feedback.listener.model.HistoryEntry;
+// HistoryEntry endpoints removed; history is owned by history-service
 import com.feedback.listener.model.Listener;
 import com.feedback.listener.model.ListenerStats;
-import com.feedback.listener.repository.HistoryRepository;
 import com.feedback.listener.repository.ListenerRepository;
-import com.feedback.listener.repository.ListenerStatsRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,15 +20,14 @@ import java.util.Map;
 @RequestMapping("/api/users")
 public class ListenerController {
     private final ListenerRepository listenerRepository;
-    private final HistoryRepository historyRepository;
-    private final ListenerStatsRepository statsRepository;
+    private final RestTemplate restTemplate;
 
-    public ListenerController(ListenerRepository listenerRepository,
-                              HistoryRepository historyRepository,
-                              ListenerStatsRepository statsRepository) {
+    @Value("${history.service.url:http://localhost:8088}")
+    private String historyServiceUrl;
+
+    public ListenerController(ListenerRepository listenerRepository) {
         this.listenerRepository = listenerRepository;
-        this.historyRepository = historyRepository;
-        this.statsRepository = statsRepository;
+        this.restTemplate = new RestTemplate();
     }
 
     @GetMapping("/{id}")
@@ -41,21 +41,32 @@ public class ListenerController {
         if (listenerOpt.isEmpty()) return ResponseEntity.notFound().build();
 
         Listener listener = listenerOpt.get();
-        ListenerStats stats = statsRepository.findById(id).orElseGet(() -> {
-            ListenerStats s = new ListenerStats();
-            s.setListenerId(id);
-            s.setTotalListeningTimeMs(listener.getTotalListeningTimeMs() == null ? 0L : listener.getTotalListeningTimeMs());
-            s.setTotalSongsPlayed(listener.getTotalSongsPlayed() == null ? 0 : listener.getTotalSongsPlayed());
-            s.setCurrentStreak(0);
-            return s;
-        });
+
+        // Attempt to fetch stats from history-service; fall back to listener fields
+        ListenerStats stats = null;
+        try {
+            ResponseEntity<ListenerStats> resp = restTemplate.getForEntity(historyServiceUrl + "/api/stats/{id}", ListenerStats.class, id);
+            if (resp.getStatusCode().is2xxSuccessful()) stats = resp.getBody();
+        } catch (HttpClientErrorException.NotFound nf) {
+            // not found — leave stats null to fallback
+        } catch (Exception e) {
+            // on error, log and fallback
+            System.err.println("Error fetching stats from history-service: " + e.getMessage());
+        }
+
+        if (stats == null) {
+            stats = new ListenerStats();
+            stats.setListenerId(id);
+            stats.setTotalListeningTimeMs(listener.getTotalListeningTimeMs() == null ? 0L : listener.getTotalListeningTimeMs());
+            stats.setTotalSongsPlayed(listener.getTotalSongsPlayed() == null ? 0 : listener.getTotalSongsPlayed());
+            stats.setCurrentStreak(0);
+        }
 
         Map<String,Object> resp = new HashMap<>();
         resp.put("userId", listener.getListenerId());
         resp.put("displayName", listener.getDisplayName());
         resp.put("email", listener.getEmail());
         resp.put("stats", stats);
-        // For now topArtists/topSongs left empty — frontend can call Spotify Integration Service directly
         resp.put("topArtists", List.of());
         resp.put("topSongs", List.of());
         return ResponseEntity.ok(resp);
@@ -63,7 +74,15 @@ public class ListenerController {
 
     @GetMapping("/{id}/stats")
     public ResponseEntity<ListenerStats> getStats(@PathVariable String id) {
-        return statsRepository.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        try {
+            ResponseEntity<ListenerStats> resp = restTemplate.getForEntity(historyServiceUrl + "/api/stats/{id}", ListenerStats.class, id);
+            return ResponseEntity.status(resp.getStatusCode()).body(resp.getBody());
+        } catch (HttpClientErrorException.NotFound nf) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            System.err.println("Error fetching stats: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
     }
 
     @PutMapping("/{id}")
@@ -80,7 +99,6 @@ public class ListenerController {
 
     @PostMapping("/register")
     public ResponseEntity<Listener> register(@RequestBody Listener listener) {
-        // expect listener.listenerId to be provided (from Spotify) or generate
         if (listener.getListenerId() == null || listener.getListenerId().isBlank()) {
             return ResponseEntity.badRequest().build();
         }
@@ -95,7 +113,6 @@ public class ListenerController {
         var opt = listenerRepository.findByEmail(email);
         if (opt.isEmpty()) return ResponseEntity.status(401).body(Map.of("error","Invalid credentials"));
         Listener l = opt.get();
-        // stub token for now
         Map<String,Object> resp = new HashMap<>();
         resp.put("listenerId", l.getListenerId());
         resp.put("displayName", l.getDisplayName());
@@ -104,24 +121,5 @@ public class ListenerController {
         return ResponseEntity.ok(resp);
     }
 
-    @PostMapping("/{id}/history")
-    public ResponseEntity<HistoryEntry> addHistory(@PathVariable String id, @RequestBody HistoryEntry entry) {
-        entry.setListenerId(id);
-        if (entry.getPlayedAt() == null) entry.setPlayedAt(Instant.now());
-        HistoryEntry saved = historyRepository.save(entry);
-        // Update aggregate stats (simple increment)
-        var statsOpt = statsRepository.findById(id);
-        ListenerStats s = statsOpt.orElseGet(() -> {
-            ListenerStats ns = new ListenerStats();
-            ns.setListenerId(id);
-            ns.setTotalListeningTimeMs(0L);
-            ns.setTotalSongsPlayed(0);
-            ns.setCurrentStreak(0);
-            return ns;
-        });
-        s.setTotalListeningTimeMs((s.getTotalListeningTimeMs() == null ? 0L : s.getTotalListeningTimeMs()) + (entry.getDurationMs() == null ? 0 : entry.getDurationMs()));
-        s.setTotalSongsPlayed((s.getTotalSongsPlayed() == null ? 0 : s.getTotalSongsPlayed()) + 1);
-        statsRepository.save(s);
-        return ResponseEntity.status(201).body(saved);
-    }
+    // History endpoint removed: history ingestion is handled directly by the history-service.
 }
