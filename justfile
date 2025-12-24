@@ -24,3 +24,6 @@ init: init-dind build-jenkins init-jenkins
 
 start:
     docker start jenkins
+
+upload-config:
+    docker cp jenkins.yaml jenkins:/var/jenkins_home/jenkins.yaml
