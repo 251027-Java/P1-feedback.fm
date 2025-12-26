@@ -1,0 +1,127 @@
+set dotenv-load
+set dotenv-required
+
+jenkins_url := '$JENKINS_PROTOCOL://$JENKINS_HOST:$JENKINS_PORT'
+
+alias jc := jcli
+alias gc := get-cli
+
+# Initialize Jenkins
+[group("Init")]
+init-jenkins: start instructions
+
+# Instructions after initializing Jenkins
+[group("Init")]
+instructions:
+    @echo -e "1. Go to {{ YELLOW }}{{ jenkins_url }}/user/`just _get-secret jenkins_username`/security{{ NORMAL }} (login if prompted)\n\
+    2. Create your API token\n\
+    3. Copy the token and set {{ RED + BOLD }}JENKINS_API_TOKEN{{ NORMAL }} in your {{ YELLOW }}.env{{ NORMAL }} file\n\
+    4. Ensure all credentials are filled in {{ YELLOW }}creds/{{ NORMAL }}\n\
+    5. Run {{ GREEN }}just get-cli{{ NORMAL }} to download the Jenkins CLI\n\
+    6. Run {{ GREEN }}just finalize{{ NORMAL }} to finish initialization\n\n\
+    If you want to see this text again use {{ GREEN }}just instructions{{ NORMAL }}"
+
+# Check if Jenkins is ready
+[group("Init")]
+@check:
+    count=`docker compose logs | grep -i -c "Jenkins is fully up and running"`; \
+    if [ $count -gt 0 ]; then \
+        echo "{{GREEN}}Jenkins is ready"; \
+    else \
+        echo "{{RED}}Jenkins is not ready"; \
+    fi
+
+# Create initial files
+[group("Init")]
+init-files:
+    file=".env"; if [ ! -f "$file" ]; then cp ${file}.example $file ; fi
+    file="./secrets/secrets.properties"; if [ ! -f "$file" ]; then cp ${file}.example $file ; fi
+    file="./secrets/github_app_team_key.pem"; touch $file
+
+# Imports necessary configuration for Jenkins
+[group("Init")]
+finalize: import-jobs
+    @echo "{{ GREEN }}Jenkins is now fully configured"
+
+# Start Jenkins
+[group("Docker")]
+start:
+    docker compose up --wait --build
+
+# Stop Jenkins
+[group("Docker")]
+stop:
+    docker compose down
+
+# Destroy all of Jenkins, including the volumes
+[group("Docker")]
+destroy:
+    docker compose down -v --rmi all
+
+# View commands for the Jenkins server
+[group("Jenkins CLI")]
+@help:
+    just jcli help
+    echo "You can also go to {{ YELLOW }}{{ jenkins_url }}/cli{{ NORMAL }} to view commands."
+
+# View help information for the Jenkins CLI
+[group("Jenkins CLI")]
+@help-cli:
+    java -jar $JENKINS_CLI
+
+# Downloads the Jenkins CLI locally
+[group("Init")]
+get-cli:
+    curl {{ jenkins_url }}/jnlpJars/jenkins-cli.jar --output $JENKINS_CLI
+
+# Shorthand to use the Jenkins CLI
+[group("Jenkins CLI")]
+@jcli *args:
+    java -jar $JENKINS_CLI -s {{ jenkins_url }} -auth `just _get-secret jenkins_username`:$JENKINS_API_TOKEN {{ args }}
+
+# Imports and reloads the JCasC configuration to Jenkins
+[group("Jenkins CLI")]
+import-config:
+    docker cp jenkins.yml $JENKINS_CONTAINER:/var/jenkins_home/jenkins.yaml
+    just jcli reload-jcasc-configuration
+
+# Imports jobs to Jenkins
+[group("Jenkins CLI")]
+import-jobs:
+    for filepath in jobs/*; do \
+        name=`basename ${filepath%.*}`; \
+        just jcli create-job $name < $filepath; \
+    done
+
+# Exports jobs from Jenkins
+[group("Jenkins CLI")]
+export-jobs:
+    for name in `just jc list-jobs`; do \
+        just jcli get-job $name > jobs/$name.xml; \
+    done
+
+# Deletes all jobs from Jenkins
+[group("Jenkins CLI")]
+delete-jobs:
+    for name in `just jc list-jobs`; do \
+        just jcli delete-job $name; \
+    done
+
+# https://plugins.jenkins.io/github/#plugin-content-manual-mode
+# https://stackoverflow.com/a/51545557
+# Tunneling using localtunnel. Only for local development
+tunnel:
+    @echo "Port: {{ GREEN }}$JENKINS_PORT{{ NORMAL }}"
+    npx localtunnel -p $JENKINS_PORT -s "$TUNNEL_SUBDOMAIN" --print-requests
+
+# Tunnel password
+tunnel-pw:
+    curl https://loca.lt/mytunnelpassword
+
+@_get-secret prop:
+    grep "^{{ prop }}=" ./secrets/secrets.properties | cut -d "=" -f 2-
+
+# https://github.com/jenkinsci/github-branch-source-plugin/blob/master/docs/github-app.adoc#creating-the-github-app
+# Convert GitHub keys to a compatible Jenkins format
+convert-key in out:
+    openssl pkcs8 -topk8 -inform PEM -outform PEM -in {{ in }} -out {{ out }} -nocrypt
