@@ -29,7 +29,15 @@ pipeline {
         stage('Check run requirements') {
             steps {
                 script {
-                    if (env.GIT_BRANCH == 'origin/' + env.GITHUB_DEFAULT_BRANCH) {
+                    /*
+                    Using multibranch pipelines does not have the "origin/" part in env.GIT_BRANCH but
+                    has env.BRANCH_IS_PRIMARY allowing for an easier check.
+                    Keep the check for "origin/" in case we ever need to do testing with a regular pipeline.
+                     */
+                    def isDefaultOnPipeline = env.GIT_BRANCH == 'origin/' + env.GITHUB_DEFAULT_BRANCH
+                    def isDefaultOnMultibranchPipeline = env.BRANCH_IS_PRIMARY == 'true'
+
+                    if (isDefaultOnPipeline || isDefaultOnMultibranchPipeline) {
                         echo 'This is the default branch. Running.'
                         return
                     }
