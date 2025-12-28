@@ -53,6 +53,43 @@ pipeline {
             }
         }
 
+        // stage('Frontend dependencies') {
+        //     when {
+        //         expression { runPipeline }
+        //     }
+
+        //     agent {
+        //         docker { image 'node:lts-alpine' }
+        //     }
+
+        //     steps {
+        //         dir('frontend') {
+        //             sh 'npm ci'
+        //             stash includes: 'node_modules/**', name: 'frontend-deps'
+        //         }
+        //     }
+        // }
+
+        // stage('Frontend - Lint') {
+        //     when {
+        //         expression { runPipeline }
+        //     }
+
+        //     agent {
+        //         docker { image 'node:lts-alpine' }
+        //     }
+
+        //     steps {
+        //         dir('frontend') {
+        //             unstash name: 'frontend-deps'
+
+        //             withChecks(name: 'Frontend - Lint') {
+        //                 sh 'npx biome ci'
+        //             }
+        //         }
+        //     }
+        // }
+
         stage('Test') {
             when {
                 expression { runPipeline }
