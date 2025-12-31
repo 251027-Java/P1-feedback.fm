@@ -4,11 +4,15 @@ https://www.jenkins.io/blog/2020/04/16/github-app-authentication/#how-do-i-get-a
 https://plugins.jenkins.io/checks-api/
  */
 
-def runPipeline = true
+def isRelatedToPrimaryBranch = false
+def forceRun = false
+def skipRun = false
+
 def chNames = [
     lintFrontend: 'lint / frontend',
     testBackend: 'test / backend',
     buildFrontend: 'build / frontend',
+    buildBackend: 'build / backend',
 ]
 
 def limitText(text, end = true) {
@@ -44,6 +48,40 @@ pipeline {
         stage('check run requirements') {
             steps {
                 script {
+                    // https://javadoc.jenkins-ci.org/hudson/scm/ChangeLogSet.html
+                    def size = currentBuild.changeSets.size()
+
+                    // size is 0 if a PR was just made
+                    if (size > 0) {
+                        echo "change sets: ${size}"
+
+                        // assuming this is git and we only ever have one scm
+                        def changeSet = currentBuild.changeSets.first()
+                        echo "${changeSet.kind}: commits: ${changeSet.items.size()}"
+
+                        // only look at most recent commit
+                        def entry = changeSet.items.last()
+                        def date = new Date(entry.timestamp)
+
+                        echo """
+${entry.commitId}
+${date.format('yyyy-MM-dd HH:mm:ss')} | ${entry.timestamp}
+files changed: ${entry.affectedFiles.size()}
+msg: ${entry.msg}
+"""
+                        // allow some options for user to either skip or force a run via commit message
+                        // [skip] has higher priority if they for some reason provide both [skip] and [run]
+                        if (entry.msg =~ /(?i)\[skip\]/) {
+                            echo '[skip] identified: skipping tests'
+                            skipRun = true
+                            return
+                        } else if (entry.msg =~ /(?i)\[run\]/) {
+                            echo '[run] identified: running all tests'
+                            forceRun = true
+                            return
+                        }
+                    }
+
                     /*
                     Using multibranch pipelines does not have the "origin/" part in env.GIT_BRANCH but
                     has env.BRANCH_IS_PRIMARY allowing for an easier check.
@@ -53,24 +91,31 @@ pipeline {
                     def isDefaultOnMultibranchPipeline = env.BRANCH_IS_PRIMARY == 'true'
 
                     if (isDefaultOnPipeline || isDefaultOnMultibranchPipeline) {
-                        echo 'This is the default branch. Running.'
+                        isRelatedToPrimaryBranch = true
+                        echo 'default branch: running'
                         return
                     }
 
                     if (env.CHANGE_TARGET == env.GITHUB_DEFAULT_BRANCH) {
-                        echo 'This is a PR to the default branch. Running'
+                        isRelatedToPrimaryBranch = true
+                        echo 'PR to default branch: running'
                         return
                     }
-
-                    runPipeline = false
-                    echo "Does not meet the requirements to run: ${env.GIT_COMMIT}"
                 }
             }
         }
 
         stage('lint frontend') {
             when {
-                expression { runPipeline }
+                not { expression { skipRun } }
+                anyOf {
+                    expression { forceRun }
+                    changeset 'Jenkinsfile'
+                    allOf {
+                        expression { isRelatedToPrimaryBranch }
+                        changeset '**/frontend/**'
+                    }
+                }
             }
 
             steps {
@@ -107,7 +152,15 @@ pipeline {
 
         stage('test backend') {
             when {
-                expression { runPipeline }
+                not { expression { skipRun } }
+                anyOf {
+                    expression { forceRun }
+                    changeset 'Jenkinsfile'
+                    allOf {
+                        expression { isRelatedToPrimaryBranch }
+                        changeset '**/backend/**'
+                    }
+                }
             }
 
             steps {
@@ -122,7 +175,15 @@ pipeline {
 
         stage('build frontend') {
             when {
-                expression { runPipeline }
+                not { expression { skipRun } }
+                anyOf {
+                    expression { forceRun }
+                    changeset 'Jenkinsfile'
+                    allOf {
+                        expression { isRelatedToPrimaryBranch }
+                        changeset '**/frontend/**'
+                    }
+                }
             }
 
             steps {
@@ -144,6 +205,42 @@ pipeline {
                                         conclusion: res.con,
                                         title: res.title
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('build backend') {
+            when {
+                not { expression { skipRun } }
+                anyOf {
+                    expression { forceRun }
+                    changeset 'Jenkinsfile'
+                    allOf {
+                        expression { isRelatedToPrimaryBranch }
+                        changeset '**/backend/**'
+                    }
+                }
+            }
+
+            steps {
+                withChecks(name: chNames.buildBackend) {
+                    dir('backend') {
+                        script {
+                            def res = [con: 'SUCCESS', title: 'Success']
+
+                            try {
+                                sh './mvnw -B package -DskipTests'
+                            } catch (err) {
+                                res.con = 'FAILURE'
+                                res.title = 'Failed'
+                                throw err
+                            } finally {
+                                publishChecks name: chNames.buildBackend,
+                                    conclusion: res.con,
+                                    title: res.title
                             }
                         }
                     }
